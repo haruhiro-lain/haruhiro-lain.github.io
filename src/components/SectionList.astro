@@ -1,0 +1,96 @@
+---
+// src/components/SectionList.astro
+import { Image } from 'astro:assets';
+import FormattedDate from './FormattedDate.astro';
+import PageShell from '../layouts/PageShell.astro';
+import FallbackImage from '../assets/blog-placeholder-about.jpg';
+
+interface Props {
+	title: string;
+	posts: any[];
+	collection: string;
+}
+
+const { title, posts, collection } = Astro.props as Props;
+---
+
+<PageShell title={title} contentWidth="900px">
+	<h1 class="section-title">{title}</h1>
+	<section>
+		{posts.length > 0 ? (
+			<ul class="section-list">
+				{posts.map((post) => (
+					<li>
+						<a href={`/${collection}/${post.id}/`}>
+							<Image width={720} height={360} src={post.data.heroImage ?? FallbackImage} alt="" />
+							<h2 class="title">{post.data.title}</h2>
+							<p class="date"><FormattedDate date={post.data.pubDate} /></p>
+						</a>
+					</li>
+				))}
+			</ul>
+		) : (
+			<p>该板块下暂无文章...</p>
+		)}
+	</section>
+</PageShell>
+
+<style>
+	.section-title {
+		margin-bottom: 1.5rem;
+	}
+
+	.section-list {
+		display: flex;
+		flex-wrap: wrap;
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+		gap: 2rem;
+	}
+
+	.section-list li {
+		width: calc(50% - 1rem);
+	}
+
+	.section-list li * {
+		transition: 0.2s ease;
+	}
+
+	.section-list li img {
+		margin-bottom: 0.5rem;
+		border-radius: 12px;
+	}
+
+	.section-list li a {
+		display: block;
+		text-decoration: none;
+	}
+
+	.section-list li a:hover .title {
+		color: rgb(var(--accent));
+	}
+
+	.title {
+		margin: 0;
+		color: rgb(var(--black));
+		line-height: 1.2;
+		font-size: 1.5rem;
+	}
+
+	.date {
+		margin: 0;
+		color: rgb(var(--gray));
+	}
+
+	@media (max-width: 720px) {
+		.section-list {
+			gap: 1em;
+		}
+
+		.section-list li {
+			width: 100%;
+			text-align: center;
+		}
+	}
+</style>

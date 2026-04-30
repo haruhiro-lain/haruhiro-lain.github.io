@@ -1,0 +1,582 @@
+---
+import PageShell from '../layouts/PageShell.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import { getSortedPosts } from '../utils/content';
+import HomeBannerContent from '../data/home.md';
+import RecentScheduleContent from '../data/recentSchedule.md';
+import { steamRecentGamesData } from '../data/steamRecentGames';
+
+const recentBlogPosts = (await getSortedPosts('blog')).slice(0, 4);
+const recentLifePosts = (await getSortedPosts('life')).slice(0, 2);
+const lightBackgroundImageModules = import.meta.glob('../assets/background/light/*.{png,jpg,jpeg,webp,avif,gif,svg}', {
+	eager: true,
+	import: 'default',
+	query: '?url',
+});
+const darkBackgroundImageModules = import.meta.glob('../assets/background/dark/*.{png,jpg,jpeg,webp,avif,gif,svg}', {
+	eager: true,
+	import: 'default',
+	query: '?url',
+});
+const steamCacheImageModules = import.meta.glob('../assets/steam-cache/*.{png,jpg,jpeg,webp,avif,gif,bmp}', {
+	eager: true,
+	import: 'default',
+	query: '?url',
+});
+const lightBackgroundImages = Object.values(lightBackgroundImageModules) as string[];
+const darkBackgroundImages = Object.values(darkBackgroundImageModules) as string[];
+const steamCacheImageUrlMap = Object.entries(steamCacheImageModules).reduce(
+	(result, [filePath, imageUrl]) => {
+		const normalizedPath = filePath.replaceAll('\\', '/');
+		const filename = normalizedPath.split('/').pop();
+		if (filename) {
+			result[filename] = imageUrl as string;
+		}
+		return result;
+	},
+	{} as Record<string, string>,
+);
+const steamRecentGames = steamRecentGamesData.games;
+const steamTotalRecentTwoWeeksText = steamRecentGamesData.totalRecentTwoWeeksText || '最近两周时长暂不可用';
+const steamFetchedAt = steamRecentGamesData.fetchedAt ? new Date(steamRecentGamesData.fetchedAt) : null;
+---
+
+<PageShell title="首页" contentWidth="900px">
+	<section
+		id="home-banner-slot"
+		class="home-banner-slot"
+		aria-label="首页顶部图片预留位"
+		data-light-images={encodeURIComponent(JSON.stringify(lightBackgroundImages))}
+		data-dark-images={encodeURIComponent(JSON.stringify(darkBackgroundImages))}
+	>
+		<div class="home-banner-textbox" aria-label="首页壁纸中央文本框">
+			<div class="home-banner-text-content">
+				<HomeBannerContent />
+			</div>
+		</div>
+	</section>
+
+	<section class="home-section home-section--schedule">
+		<div class="schedule-card" aria-label="最近日程">
+			<div class="schedule-card__content">
+				<RecentScheduleContent />
+			</div>
+		</div>
+	</section>
+
+	<section class="home-hero">
+
+		<!-- <h1>Haruhiro Blog</h1> -->
+	</section>
+
+	<section class="home-section">
+		<div class="home-section__head">
+			<h2>近期博文</h2>
+			<a href="/blog">查看更多</a>
+		</div>
+		<ul class="home-list">
+			{recentBlogPosts.map((post) => (
+				<li>
+					<a href={`/blog/${post.id}/`}>
+						<span>{post.data.title}</span>
+						<time><FormattedDate date={post.data.pubDate} /></time>
+					</a>
+				</li>
+			))}
+		</ul>
+	</section>
+
+	<section class="home-section">
+		<div class="home-section__head">
+			<h2>近期动态</h2>
+			<a href="/life">查看更多</a>
+		</div>
+		<ul class="home-list">
+			{recentLifePosts.map((post) => (
+				<li>
+					<a href={`/life/${post.id}/`}>
+						<span>{post.data.title}</span>
+						<time><FormattedDate date={post.data.pubDate} /></time>
+					</a>
+				</li>
+			))}
+		</ul>
+	</section>
+
+	<section class="home-section home-section--steam">
+		<div class="home-section__head">
+			<!-- <h2>Steam</h2> -->
+			<h2>近期电动</h2>
+			<a href={steamRecentGamesData.profileUrl} target="_blank" rel="noopener noreferrer">查看主页</a>
+		</div>
+		<div class="steam-card">
+			<div class="steam-card__head">
+				<h3>最近两周：{steamTotalRecentTwoWeeksText}</h3>
+				<button class="steam-toggle" data-target="steam-list" type="button" aria-expanded="false">展开</button>
+			</div>
+			{steamRecentGames.length > 0 ? (
+				<ul class="steam-list" id="steam-list">
+					{steamRecentGames.map((game) => (
+						<li>
+							<div class="steam-game__row">
+								{(steamCacheImageUrlMap[game.coverImageLocalPath] || game.coverImageUrl) && (
+									<a href={game.appUrl} target="_blank" rel="noopener noreferrer" class="steam-game__cover-link" aria-label={`打开 ${game.name} Steam 页面`}>
+										<img src={steamCacheImageUrlMap[game.coverImageLocalPath] || game.coverImageUrl} alt={game.name} class="steam-game__cover" loading="lazy" decoding="async" />
+									</a>
+								)}
+								<div class="steam-game__main">
+									<div class="steam-game__name-row">
+										<a href={game.appUrl} target="_blank" rel="noopener noreferrer" class="steam-game__name">
+											{game.name}
+										</a>
+										{game.lastPlayedText && <span class="steam-game__played">最近游玩：{game.lastPlayedText}</span>}
+									</div>
+									<div class="steam-game__hours">
+										<span>总时长：{game.totalHoursText || '—'}</span>
+									</div>
+								</div>
+							</div>
+						</li>
+					))}
+				</ul>
+			) : (
+				<p class="steam-empty">暂无可展示的最近游玩数据。</p>
+			)}
+			{steamFetchedAt && (
+				<p class="steam-fetched-at">更新时间：<FormattedDate date={steamFetchedAt} /></p>
+			)}
+		</div>
+	</section>
+</PageShell>
+
+<script is:inline>
+	const homeBannerSlot = document.getElementById('home-banner-slot');
+	if (homeBannerSlot instanceof HTMLElement) {
+		const parseImageList = (encodedValue) => {
+			if (!encodedValue) {
+				return [];
+			}
+
+			try {
+				const parsed = JSON.parse(decodeURIComponent(encodedValue));
+				return Array.isArray(parsed) ? parsed.filter((item) => typeof item === 'string' && item.length > 0) : [];
+			} catch {
+				return [];
+			}
+		};
+
+		const lightImages = parseImageList(homeBannerSlot.dataset.lightImages);
+		const darkImages = parseImageList(homeBannerSlot.dataset.darkImages);
+
+		const pickRandomImage = (images) => {
+			if (!Array.isArray(images) || images.length === 0) {
+				return '';
+			}
+			const randomIndex = Math.floor(Math.random() * images.length);
+			return images[randomIndex] || '';
+		};
+
+		const applyBannerImage = () => {
+			const activeTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+			const selectedImage =
+				activeTheme === 'dark'
+					? pickRandomImage(darkImages) || pickRandomImage(lightImages)
+					: pickRandomImage(lightImages) || pickRandomImage(darkImages);
+
+			if (selectedImage) {
+				homeBannerSlot.style.backgroundImage = `url("${selectedImage}")`;
+				homeBannerSlot.classList.add('home-banner-slot--has-image');
+				return;
+			}
+
+			homeBannerSlot.style.backgroundImage = '';
+			homeBannerSlot.classList.remove('home-banner-slot--has-image');
+		};
+
+		applyBannerImage();
+
+		const observer = new MutationObserver((mutationList) => {
+			for (const mutation of mutationList) {
+				if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+					applyBannerImage();
+					break;
+				}
+			}
+		});
+
+		observer.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ['data-theme'],
+		});
+	}
+
+	const initSteamBacklogToggles = () => {
+		document.querySelectorAll('.steam-toggle').forEach((btn) => {
+			if (!(btn instanceof HTMLButtonElement)) {
+				return;
+			}
+
+			if (btn.dataset.bound === 'true') {
+				return;
+			}
+
+			btn.dataset.bound = 'true';
+			const targetId = btn.dataset.target;
+			if (!targetId) {
+				return;
+			}
+
+			const list = document.getElementById(targetId);
+			if (!(list instanceof HTMLUListElement)) {
+				return;
+			}
+
+			const collapsedCount = 3;
+			const updateDisplay = () => {
+				const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+				const items = Array.from(list.querySelectorAll('li'));
+				items.forEach((item, index) => {
+					const shouldShow = isExpanded || index < collapsedCount;
+					item.classList.toggle('is-collapsed-hidden', !shouldShow);
+				});
+				btn.textContent = isExpanded ? '收起' : '展开';
+			};
+
+			btn.addEventListener('click', () => {
+				const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+				btn.setAttribute('aria-expanded', String(!isExpanded));
+				updateDisplay();
+			});
+
+			updateDisplay();
+		});
+	};
+
+	document.addEventListener('DOMContentLoaded', () => {
+		initSteamBacklogToggles();
+	});
+
+	document.addEventListener('astro:page-load', () => {
+		initSteamBacklogToggles();
+	});
+
+	initSteamBacklogToggles();
+</script>
+
+<style>
+	:global(.page-shell__content) {
+		padding-top: 0;
+	}
+
+	:global(.page-shell__main) {
+		padding-top: 0;
+	}
+
+	.home-banner-slot {
+		width: 100vw;
+		margin-left: calc(50% - 50vw);
+		margin-right: calc(50% - 50vw);
+		height: 100vh;
+		margin-bottom: 1.5rem;
+		border-radius: 12px;
+		background: color-mix(in srgb, var(--overlay-card) 58%, transparent);
+		background-size: cover;
+		background-position: center;
+		background-repeat: no-repeat;
+		position: relative;
+		display: grid;
+		place-items: center;
+	}
+
+	.home-banner-slot--has-image {
+		background-color: transparent;
+	}
+
+	.home-banner-textbox {
+		width: 66.66vw;
+		height: 50vh;
+		display: grid;
+		place-items: center;
+		background: color-mix(in srgb, var(--overlay-bg) 50%, transparent);
+		padding: 0.75rem 1.25rem;
+		border: 1px solid color-mix(in srgb, var(--overlay-border) 40%, transparent);
+		border-radius: 10px;
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+	}
+
+	.home-banner-text-content {
+		text-align: center;
+	}
+
+	.home-banner-text-content :global(h1) {
+		margin: 0;
+		font-size: clamp(1.8rem, 4vw, 2.6rem);
+		line-height: 1.1;
+	}
+
+	.home-banner-text-content :global(p) {
+		margin: 0.7rem 0 0;
+		font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+		line-height: 1.5;
+	}
+
+	.home-hero {
+		margin-bottom: 2.25rem;
+	}
+
+	.home-hero h1 {
+		font-size: clamp(2rem, 5vw, 2.8rem);
+		margin-bottom: 0.75rem;
+	}
+
+	.home-hero p {
+		max-width: 42ch;
+	}
+
+	.home-section {
+		margin-top: 1.8rem;
+	}
+
+	.home-section--schedule {
+		margin-top: 1rem;
+	}
+
+	.schedule-card {
+		border: 1px solid var(--overlay-border);
+		border-radius: 10px;
+		background: var(--overlay-card);
+		padding: 0.85rem 1rem;
+	}
+
+	.schedule-card__content {
+		font-size: 0.95rem;
+		line-height: 1.6;
+		color: rgb(var(--black));
+	}
+
+	.schedule-card__content :global(h1),
+	.schedule-card__content :global(h2),
+	.schedule-card__content :global(h3) {
+		margin: 0 0 0.55rem;
+		font-size: 1.1rem;
+	}
+
+	.schedule-card__content :global(h3) {
+		margin-top: 0.9rem;
+		font-size: 1rem;
+	}
+
+	.schedule-card__content :global(h3:first-child) {
+		margin-top: 0;
+	}
+
+	.schedule-card__content :global(p) {
+		margin: 0.45rem 0;
+		line-height: 1.5;
+	}
+
+	.schedule-card__content :global(ul) {
+		margin: 0 0 0.4rem;
+		padding-left: 1.2rem;
+		display: grid;
+		gap: 0.25rem;
+	}
+
+	.schedule-card__content :global(li) {
+		margin: 0;
+		padding-left: 0.1rem;
+	}
+
+	.schedule-card__content :global(strong) {
+		font-size: 0.98rem;
+	}
+
+	.home-section--steam {
+		padding-bottom: 1.2rem;
+	}
+
+	.home-section__head {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 0.7rem;
+	}
+
+	.home-section__head h2 {
+		font-size: 1.35rem;
+		margin: 0;
+	}
+
+	.home-section__head a {
+		font-size: 0.95rem;
+		text-decoration: none;
+	}
+
+	.home-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: grid;
+		gap: 0.6rem;
+	}
+
+	.home-list a {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		text-decoration: none;
+		padding: 0.75rem 0.85rem;
+		border: 1px solid var(--overlay-border);
+		border-radius: 10px;
+		background: var(--overlay-card);
+		color: rgb(var(--black));
+	}
+
+	.home-list time {
+		color: rgb(var(--gray));
+		white-space: nowrap;
+		font-size: 0.92rem;
+	}
+
+	.steam-card {
+		border: 1px solid var(--overlay-border);
+		border-radius: 10px;
+		background: var(--overlay-card);
+		padding: 0.75rem 0.85rem;
+	}
+
+	.steam-card__head {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+		margin-bottom: 0.6rem;
+	}
+
+	.steam-card__head h3 {
+		margin: 0;
+		font-size: 1rem;
+	}
+
+	.steam-toggle {
+		border: 1px solid var(--overlay-border);
+		background: transparent;
+		color: rgb(var(--black));
+		border-radius: 8px;
+		padding: 0.25rem 0.55rem;
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+
+	.steam-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: grid;
+		gap: 0.6rem;
+	}
+
+	.steam-list li {
+		border: 1px solid var(--overlay-border);
+		border-radius: 8px;
+		padding: 0.65rem 0.7rem;
+	}
+
+	.steam-game__row {
+		display: flex;
+		gap: 0.7rem;
+		align-items: center;
+	}
+
+	.steam-game__cover-link {
+		display: block;
+		line-height: 0;
+		border-radius: 6px;
+		overflow: hidden;
+		flex-shrink: 0;
+	}
+
+	.steam-game__cover {
+		display: block;
+		width: clamp(140px, 18vw, 170px);
+		height: auto;
+		border-radius: 6px;
+	}
+
+	.steam-game__main {
+		min-width: 0;
+		flex: 1;
+	}
+
+	.steam-game__name-row {
+		display: flex;
+		justify-content: space-between;
+		gap: 0.8rem;
+		align-items: baseline;
+	}
+
+	.steam-game__name {
+		text-decoration: none;
+		color: rgb(var(--black));
+	}
+
+	.steam-game__played {
+		color: rgb(var(--gray));
+		font-size: 0.85rem;
+		white-space: nowrap;
+	}
+
+	.steam-game__hours {
+		margin-top: 0.3rem;
+		display: flex;
+		gap: 1rem;
+		font-size: 0.9rem;
+		color: rgb(var(--gray));
+	}
+
+	.steam-empty {
+		margin: 0;
+		color: rgb(var(--gray));
+		font-size: 0.9rem;
+	}
+
+	.steam-fetched-at {
+		margin: 0.6rem 0 0;
+		font-size: 0.85rem;
+		color: rgb(var(--gray));
+	}
+
+	.is-collapsed-hidden {
+		display: none;
+	}
+
+	@media (max-width: 720px) {
+		.home-list a {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: 0.4rem;
+		}
+
+		.steam-game__name-row {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.25rem;
+		}
+
+		.steam-game__row {
+			flex-direction: column;
+		}
+
+		.steam-game__cover {
+			width: 100%;
+			max-width: 230px;
+		}
+
+		.steam-game__hours {
+			flex-direction: column;
+			gap: 0.2rem;
+		}
+	}
+</style>

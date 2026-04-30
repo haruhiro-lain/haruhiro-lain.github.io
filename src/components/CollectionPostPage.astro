@@ -1,0 +1,25 @@
+---
+import { render, type CollectionEntry } from 'astro:content';
+import BlogPost from '../layouts/BlogPost.astro';
+import type { ContentCollection } from '../utils/content';
+
+type Props = {
+	post: CollectionEntry<ContentCollection>;
+};
+
+const { post } = Astro.props as Props;
+const { Content, headings } = await render(post);
+const entryPathSegments = post.id.split('/');
+entryPathSegments.pop();
+const entryBaseDir = `../content/${post.collection}/${entryPathSegments.length > 0 ? `${entryPathSegments.join('/')}/` : ''}`;
+---
+
+<BlogPost
+	{...post.data}
+	headings={headings}
+	entryCollection={post.collection}
+	entryId={post.id}
+	entryBaseDir={entryBaseDir}
+>
+	<Content />
+</BlogPost>

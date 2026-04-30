@@ -1,0 +1,115 @@
+---
+import { Image } from 'astro:assets';
+import FormattedDate from '../../components/FormattedDate.astro';
+import PageShell from '../../layouts/PageShell.astro';
+import { getSortedPosts } from '../../utils/content';
+
+const posts = await getSortedPosts('blog');
+---
+
+<PageShell title="博客">
+	<section>
+		<h1 class="page-title">博客</h1>
+		<ul class="post-grid">
+			{posts.map((post) => (
+				<li>
+					<a href={`/blog/${post.id}/`}>
+						{post.data.heroImage && (
+							<Image width={720} height={360} src={post.data.heroImage} alt="" />
+						)}
+						<h2 class="title">{post.data.title}</h2>
+						<p class="date">
+							<FormattedDate date={post.data.pubDate} />
+						</p>
+					</a>
+				</li>
+			))}
+		</ul>
+	</section>
+</PageShell>
+
+<style>
+	.page-title {
+		margin-bottom: 1.5rem;
+	}
+
+	.post-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2rem;
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.post-grid li {
+		width: calc(50% - 1rem);
+	}
+
+	.post-grid li * {
+		text-decoration: none;
+		transition: 0.2s ease;
+	}
+
+	.post-grid li:first-child {
+		width: 100%;
+		margin-bottom: 1rem;
+		text-align: center;
+	}
+
+	.post-grid li:first-child img {
+		width: 100%;
+	}
+
+	.post-grid li:first-child .title {
+		font-size: 2.369rem;
+	}
+
+	.post-grid li img {
+		margin-bottom: 0.5rem;
+		border-radius: 12px;
+	}
+
+	.post-grid li a {
+		display: block;
+	}
+
+	.title {
+		margin: 0;
+		color: rgb(var(--black));
+		line-height: 1;
+	}
+
+	.date {
+		margin: 0;
+		color: rgb(var(--gray));
+	}
+
+	.post-grid li a:hover .title,
+	.post-grid li a:hover .date {
+		color: rgb(var(--accent));
+	}
+
+	.post-grid a:hover img {
+		box-shadow: var(--box-shadow);
+	}
+
+	@media (max-width: 720px) {
+		.post-grid {
+			gap: 0.5em;
+		}
+
+		.post-grid li {
+			width: 100%;
+			text-align: center;
+		}
+
+		.post-grid li:first-child {
+			margin-bottom: 0;
+		}
+
+		.post-grid li:first-child .title {
+			font-size: 1.563em;
+		}
+	}
+</style>

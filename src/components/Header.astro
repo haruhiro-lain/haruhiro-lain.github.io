@@ -1,0 +1,165 @@
+---
+import { SITE_TITLE } from '../consts';
+import HeaderLink from './HeaderLink.astro';
+---
+
+<header>
+    <nav>
+        <h2><a href="/">{SITE_TITLE}</a></h2>
+        <div class="internal-links">
+            <HeaderLink href="/">首页</HeaderLink>
+            <div class="nav-item">
+                <HeaderLink href="/learning">笔记</HeaderLink>
+                <div class="submenu">
+                    <HeaderLink href="/algorithms">题解</HeaderLink>
+                    <HeaderLink href="/projects">项目</HeaderLink>
+                    <HeaderLink href="/interview">八股</HeaderLink>
+                </div>
+            </div>
+            <div class="nav-item">
+                <HeaderLink href="/life">动态</HeaderLink>
+                <div class="submenu">
+                    <HeaderLink href="/life/weekly">周掸</HeaderLink>
+                    <HeaderLink href="/life/VA-11_Hall-A">烂酒罐</HeaderLink>
+                    <HeaderLink href="/life/GK">喷漆间</HeaderLink>
+                </div>
+            </div>
+            <HeaderLink href="/log">日志</HeaderLink>
+            <HeaderLink href="/about">关于</HeaderLink>
+        </div>
+    </nav>
+</header>
+
+<style>
+    header {
+        margin: 0;
+        padding: 0;
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: 0;
+        z-index: 1100;
+        pointer-events: none;
+        display: flex;
+        justify-content: center;
+    }
+    h2 {
+        margin: 0;
+        font-size: 1em;
+        line-height: 1;
+    }
+
+    h2 a,
+    h2 a.active {
+        display: inline-block;
+        font-size: 1.45em;
+        line-height: 1;
+        text-decoration: none;
+    }
+    nav {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        width: 100%;
+        background: transparent;
+        backdrop-filter: blur(16px) saturate(130%);
+        -webkit-backdrop-filter: blur(16px) saturate(130%);
+        border: none;
+        border-radius: 14px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 25%);
+        padding: 0.25em 0.9em;
+        z-index: 1000;
+        box-sizing: border-box;
+        gap: 1rem;
+        pointer-events: auto;
+    }
+    h2 {
+        position: absolute;
+        left: 0.2em;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+    nav a {
+        padding: 0.35em 1.50em;
+        font-size: 0.92rem;
+        color: rgb(var(--black));
+        border-bottom: 4px solid transparent;
+        text-decoration: none;
+    }
+    nav a.active {
+        text-decoration: none;
+        border-bottom-color: var(--accent);
+    }
+    nav > h2 > a,
+    nav > h2 > a.active {
+        font-size: 1.25em;
+        line-height: 1;
+    }
+    .internal-links {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.7rem;
+        flex: 0 1 auto;
+    }
+    .nav-item {
+        position: relative;
+    }
+    .submenu {
+        display: flex;
+        position: absolute;
+        left: 0;
+        top: calc(100% + 0.25rem);
+        background: var(--overlay-bg);
+        backdrop-filter: blur(16px) saturate(130%);
+        -webkit-backdrop-filter: blur(16px) saturate(130%);
+        border: none;
+        box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.28);
+        border-radius: 8px;
+        padding: 0.3em 0.15em;
+        min-width: 75px;
+        flex-direction: column;
+        z-index: 1100;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition:
+            opacity 0.15s ease 0.3s,
+            visibility 0s linear 0.35s;
+    }
+    .nav-item:hover .submenu,
+    .nav-item:focus-within .submenu {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transition-delay: 0s, 0s;
+    }
+    .submenu a {
+        padding: 0.45em 0.7em;
+        border-bottom: none;
+        border-radius: 6px;
+    }
+    .submenu a:hover {
+        background: rgba(var(--gray-light), 0.35);
+    }
+    @media (max-width: 960px) {
+        nav {
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        h2 {
+            position: static;
+            transform: none;
+            width: 100%;
+            text-align: center;
+        }
+        .internal-links {
+            flex: 0 1 100%;
+            order: 2;
+        }
+    }
+</style>

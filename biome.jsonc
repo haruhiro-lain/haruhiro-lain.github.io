@@ -1,0 +1,214 @@
+{
+  // Biome配置Schema验证
+  "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+
+  // 文件包含配置
+  "files": {
+    "includes": [
+      "**",                              // 包含所有文件
+      "!**/vendor",                     // 排除vendor目录
+      "!!**/smoke",                     // 强制包含smoke测试
+      "!!**/fixtures",                  // 强制包含测试夹具
+      "!!**/fixture",                   // 强制包含fixture
+      "!!**/_temp-fixtures",            // 强制包含临时夹具
+      "!!**/dist",                      // 强制包含构建输出
+      "packages/language-tools/vscode/syntaxes/*.json", // VS Code语法文件
+      "!!**/.vscode-test",              // 强制包含VS Code测试
+      "!!benchmark/static-projects"     // 强制包含静态基准测试项目
+    ]
+  },
+
+  // 版本控制系统配置
+  "vcs": {
+    "enabled": true,                    // 启用VCS集成
+    "clientKind": "git",               // 使用Git
+    "useIgnoreFile": true              // 使用.gitignore文件
+  },
+
+  // 代码格式化配置
+  "formatter": {
+    "indentStyle": "tab",              // 使用制表符缩进
+    "indentWidth": 2,                  // 制表符宽度
+    "lineWidth": 100,                  // 每行最大字符数
+    "includes": ["**", "!**/.changeset", "!**/pnpm-lock.yaml", "!**/*.astro"], // 包含的文件
+    "expand": "auto"                   // 自动展开
+  },
+
+  // 代码辅助配置
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "off"       // 禁用导入组织（由ESLint处理）
+      }
+    }
+  },
+  // 代码检查配置
+  "linter": {
+    "enabled": true,                   // 启用代码检查
+
+    // 域配置
+    "domains": {
+      "test": "recommended"            // 测试文件使用推荐规则
+    },
+
+    // 规则配置
+    "rules": {
+      "recommended": false,            // 禁用推荐规则（使用自定义规则）
+      "style": {
+        "useNodejsImportProtocol": "error",  // 使用Node.js导入协议
+        // 强制类型导入与值导入分离，避免打包不需要的代码
+        "useImportType": "error",      // 使用类型导入
+        "useExportType": "error",      // 使用类型导出
+        "useNumberNamespace": "warn",  // 使用Number命名空间
+        "noInferrableTypes": "error"   // 禁止可推断的类型
+      },
+      "suspicious": {
+        // 特定用于捕获console.log，其余日志允许
+        "noConsole": {
+          "level": "warn",
+          "options": {
+            "allow": ["error", "warn", "info", "debug"]  // 允许的console方法
+          }
+        },
+        "noVar": "error",              // 禁止var
+        "noDoubleEquals": "error",     // 禁止==比较
+        "noDebugger": "error",         // 禁止debugger
+        "noDuplicateCase": "error",    // 禁止重复case
+        "noExplicitAny": "off",        // 允许显式any
+        // 稍后启用
+        "noImplicitAnyLet": "off",     // 暂时关闭隐式any let
+        "noSparseArray": "error"       // 禁止稀疏数组
+      },
+      "correctness": {
+        "noUnusedVariables": {
+          "level": "error",
+          "options": {
+            "ignoreRestSiblings": true  // 忽略rest兄弟变量
+          }
+        },
+        "noUnusedFunctionParameters": "error",  // 禁止未使用的函数参数
+        "noUnusedImports": "error",    // 禁止未使用的导入
+        "noUnreachable": "error",      // 禁止不可达代码
+        "noConstantCondition": "warn", // 常量条件警告
+        "noConstructorReturn": "error", // 禁止构造函数返回
+        "noEmptyPattern": "error"      // 禁止空模式
+      },
+      "complexity": {
+        // 有很多违反需要手动检查
+        "noForEach": "off",            // 暂时关闭forEach检查
+        "noUselessFragments": "warn",  // 无用片段警告
+        "useFlatMap": "warn",          // 建议使用flatMap
+        // 稍后启用，有很多警告
+        "useOptionalChain": "off"      // 暂时关闭可选链检查
+      },
+      "performance": {
+        "noAccumulatingSpread": "warn" // 累积展开警告
+      }
+    }
+  },
+  // JavaScript特定配置
+  "javascript": {
+    "formatter": {
+      "trailingCommas": "all",        // 尾随逗号：全部
+      "quoteStyle": "single",         // 引号样式：单引号
+      "semicolons": "always"          // 分号：总是使用
+    }
+  },
+
+  // JSON配置
+  "json": {
+    "parser": {
+      "allowComments": true,          // 允许注释
+      "allowTrailingCommas": true     // 允许尾随逗号
+    },
+    "formatter": {
+      "indentStyle": "space",         // 缩进样式：空格
+      "trailingCommas": "none"        // 尾随逗号：无
+    }
+  },
+  // 覆盖配置
+  "overrides": [
+    {
+      // 解决格式化文件像npm一样的问题
+      "includes": ["**/package.json"],  // package.json文件
+      "json": {
+        "formatter": {
+          "expand": "always"           // 总是展开
+        }
+      }
+    },
+    {
+      // Astro、Vue、Svelte文件
+      "includes": ["**/*.astro", "**/*.vue", "**/*.svelte"],
+      "formatter": {
+        "enabled": false              // 禁用格式化（由专门工具处理）
+      },
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off", // 关闭未使用变量检查
+            "noUnusedImports": "off"   // 关闭未使用导入检查
+          }
+        }
+      }
+    },
+    {
+      // 不希望在运行时无关的代码中有node modules
+      "includes": [
+        "**/packages/astro/src/**/runtime/**/*.ts",
+        "**/packages/astro/src/**/*runtime*.ts"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "error"  // 禁止Node.js模块
+          }
+        }
+      }
+    },
+    {
+      // Astro和类型定义文件
+      "includes": ["**/*.astro", "**/client.d.ts", "**/jsx-runtime.d.ts"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off", // 关闭未使用变量检查
+            "noUnusedImports": "off"   // 关闭未使用导入检查
+          }
+        }
+      }
+    },
+    {
+      // 集成包文件
+      "includes": ["**/packages/integrations/**/*.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": {
+              "level": "error",
+              "options": {
+                "allow": ["warn", "error", "info", "debug"]  // 允许的console方法
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      // CLI和基准测试文件
+      "includes": [
+        "**/packages/db/**/cli/**/*.ts",
+        "**/benchmark/**/*.js",
+        "**/packages/astro/src/cli/**/*.ts",
+        "**/packages/astro/bin/**/*.mjs"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noConsole": "off"         // 允许console
+          }
+        }
+      }
+    }
+  ]
+}

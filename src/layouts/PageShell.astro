@@ -1,0 +1,38 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+
+interface Props {
+	title?: string;
+	description?: string;
+	contentWidth?: string;
+	showHeader?: boolean;
+}
+
+const {
+	title = SITE_TITLE,
+	description = SITE_DESCRIPTION,
+	contentWidth = 'var(--content-width-base)',
+	showHeader = true,
+} = Astro.props as Props;
+
+const headTitle = title === SITE_TITLE ? SITE_TITLE : `${title} - ${SITE_TITLE}`;
+---
+
+<!doctype html>
+<html lang="zh-cn">
+	<head>
+		<BaseHead title={headTitle} description={description} />
+	</head>
+	<body class:list={["page-shell", !showHeader && 'page-shell--no-header']}>
+		{showHeader && <Header />}
+		<div class="page-shell__content">
+			<main class="page-shell__main" style={`--content-width: ${contentWidth};`}>
+				<slot />
+			</main>
+		</div>
+		<Footer />
+	</body>
+</html>

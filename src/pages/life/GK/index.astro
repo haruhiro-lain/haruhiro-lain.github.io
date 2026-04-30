@@ -1,0 +1,642 @@
+---
+import { Image } from 'astro:assets';
+import FormattedDate from '../../../components/FormattedDate.astro';
+import PageShell from '../../../layouts/PageShell.astro';
+import type { CollectionEntry } from 'astro:content';
+import { getSortedPosts } from '../../../utils/content';
+import FallbackImage from '../../../assets/blog-placeholder-about.jpg';
+import { gkModelSelection } from '../../../data/gkModelSelection';
+
+const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life'>) => post.id.startsWith('gk/'));
+
+// 油漆库存数据
+const paintStock = [
+	{ name: '黑色打底', brand: '田宫', amount: '充足' },
+	{ name: '白色打底', brand: '田宫', amount: '充足' },
+	{ name: '灰色打底', brand: '田宫', amount: '充足' },
+	{ name: '红色', brand: 'Mr.黑色', amount: '3瓶' },
+	{ name: '蓝色', brand: 'Mr.黑色', amount: '2瓶' },
+	{ name: '绿色', brand: 'Mr.黑色', amount: '1瓶' },
+	{ name: '黄色', brand: 'Mr.黑色', amount: '2瓶' },
+	{ name: '肉色', brand: 'Mr.黑色', amount: '充足' },
+	{ name: '金色', brand: 'Mr.黑色', amount: '1瓶' },
+	{ name: '银色', brand: 'Mr.黑色', amount: '3瓶' },
+	{ name: '透明', brand: 'Mr.黑色', amount: '充足' },
+	{ name: '哑光剂', brand: 'Mr.黑色', amount: '充足' },
+];
+
+type ModelBacklogItem = {
+	name: string;
+	scale?: string;
+	status?: string;
+	image?: string;
+	link?: string;
+};
+
+// 若 allModels 已由 sync:hpoi 脚本填充则直接用，避免构建时网络请求
+const configModels: ModelBacklogItem[] = gkModelSelection.allModels.map((m) => ({
+	name: m.name,
+	scale: '—',
+	status: '已入手',
+	image: m.image,
+	link: m.link,
+}));
+
+const fetchHpoiBacklog = async (): Promise<ModelBacklogItem[]> => {
+	if (configModels.length > 0) return configModels;
+
+	const HPOI_COLLECTION_URL = 'https://www.hpoi.net/user/113242/hobby?favState=buy&category=-1';
+
+	const decodeHtml = (text: string) =>
+		text
+			.replaceAll('&amp;', '&')
+			.replaceAll('&quot;', '"')
+			.replaceAll('&#39;', "'")
+			.replaceAll('&lt;', '<')
+			.replaceAll('&gt;', '>')
+			.trim();
+
+	const buildAbsoluteUrl = (value: string) => {
+		if (!value) return '';
+		if (value.startsWith('http://') || value.startsWith('https://')) return value;
+		return `https://www.hpoi.net/${value.replace(/^\/+/, '')}`;
+	};
+
+	const pattern =
+		/<a class="cover" href="([^"]+)"[\s\S]*?<img[^>]*src="([^"]+)"[^>]*alt="([^"]*)"[\s\S]*?<div class="name">[\s\S]*?<a href="[^"]+"[^>]*>([\s\S]*?)<\/a>/g;
+
+	const extractItemsFromHtml = (html: string, seen: Set<string>, results: ModelBacklogItem[]) => {
+		let pageCount = 0;
+		for (const match of html.matchAll(pattern)) {
+			const link = buildAbsoluteUrl(match[1] ?? '');
+			if (!link || seen.has(link)) continue;
+			const image = buildAbsoluteUrl((match[2] ?? '').trim());
+			const name =
+				decodeHtml((match[4] ?? '').replace(/<[^>]*>/g, '')) || decodeHtml(match[3] ?? '');
+			if (!name) continue;
+			/* results.push({ name, scale: '—', status: '已入手', image, link }); */
+			seen.add(link);
+			pageCount += 1;
+		}
+		return pageCount;
+	};
+
+	try {
+		const results: ModelBacklogItem[] = [];
+		const seen = new Set<string>();
+
+		for (let page = 1; page <= 20; page += 1) {
+			const pageUrl = page === 1 ? HPOI_COLLECTION_URL : `${HPOI_COLLECTION_URL}&page=${page}`;
+			const response = await fetch(pageUrl, {
+				headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Astro-Blog personal site)' },
+			});
+			if (!response.ok) break;
+
+			const html = await response.text();
+			const pageCount = extractItemsFromHtml(html, seen, results);
+			if (pageCount === 0) break;
+		}
+
+		return results;
+	} catch {
+		return [];
+	}
+};
+
+const normalizeSelectionValue = (value: string) => value.trim().toLowerCase();
+
+const selectedLinks = gkModelSelection.selectedLinks.map(normalizeSelectionValue);
+const selectedNames = gkModelSelection.selectedNames.map(normalizeSelectionValue);
+const selectedLinksSet = new Set(selectedLinks);
+const selectedNamesSet = new Set(selectedNames);
+
+const isSelectedModel = (item: ModelBacklogItem) => {
+	if (selectedLinksSet.size === 0 && selectedNamesSet.size === 0) return true;
+	const link = normalizeSelectionValue(item.link ?? '');
+	const name = normalizeSelectionValue(item.name);
+	return selectedLinksSet.has(link) || selectedNamesSet.has(name);
+};
+
+const sortBySelectionOrder = (items: ModelBacklogItem[]): ModelBacklogItem[] => {
+	const linkOrder = new Map(selectedLinks.map((v, i) => [v, i]));
+	const nameOrder = new Map(selectedNames.map((v, i) => [v, selectedLinks.length + i]));
+	const getOrder = (item: ModelBacklogItem) => {
+		const link = normalizeSelectionValue(item.link ?? '');
+		const name = normalizeSelectionValue(item.name);
+		return linkOrder.get(link) ?? nameOrder.get(name) ?? Number.MAX_SAFE_INTEGER;
+	};
+	return [...items].sort((a, b) => getOrder(a) - getOrder(b));
+};
+
+const modelBacklog = sortBySelectionOrder((await fetchHpoiBacklog()).filter(isSelectedModel));
+const displayModelBacklog = gkModelSelection.maxVisible > 0
+	? modelBacklog.slice(0, gkModelSelection.maxVisible)
+	: modelBacklog;
+---
+
+<PageShell title="喷漆间" contentWidth="100vw">
+	<article class="gk-panel">
+		<section class="card-grid">
+			<section class="card card--blog">
+				{posts.length > 0 ? (
+					<ul class="blog-list">
+						{posts.map((post: CollectionEntry<'life'>) => (
+							<li class="blog-item">
+								<a href={`/life/GK/${post.id.slice('gk/'.length)}/`}>
+									<div class="blog-image">
+										<Image width={720} height={360} src={post.data.heroImage ?? FallbackImage} alt={post.data.title} />
+									</div>
+									<h3 class="blog-title">{post.data.title}</h3>
+									<p class="blog-date"><FormattedDate date={post.data.pubDate} /></p>
+								</a>
+							</li>
+						))}
+					</ul>
+				) : (
+					<p class="sub">喷漆间暂时还没有文章。</p>
+				)}
+			</section>
+
+			<aside class="sidebar">
+				<section class="card card--sidebar card--stock">
+					<div class="sidebar-head">
+						<h2>油漆库存</h2>
+						<button class="sidebar-toggle" data-target="stock-list" type="button" aria-expanded="false">
+							展开
+						</button>
+					</div>
+					<ul class="stock-list" id="stock-list">
+						{paintStock.map((item) => (
+							<li>
+								<span class="paint-name">{item.name}</span>
+								<span class="paint-brand">{item.brand}</span>
+								<strong class="paint-amount">{item.amount}</strong>
+							</li>
+						))}
+					</ul>
+				</section>
+
+				<section class="card card--sidebar card--models">
+					<div class="sidebar-head">
+						<h2>堆积...</h2>
+						<button class="sidebar-toggle" data-target="models-list" type="button" aria-expanded="false">
+							展开
+						</button>
+					</div>
+					<ul class="models-list" id="models-list">
+						{displayModelBacklog.map((item) => (
+							<li>
+								{item.image && (
+									<img src={item.image} alt={item.name} class="model-thumb" />
+								)}
+								<div class="model-info">
+									{item.link ? (
+										<a href={item.link} class="model-name" target="_blank" rel="noopener noreferrer">{item.name}</a>
+									) : (
+										<span class="model-name">{item.name}</span>
+									)}
+									{/* <span class="model-scale">{item.scale}</span> */}
+									{/* <span class="model-status">{item.status}</span> */}
+								</div>
+							</li>
+						))}
+					</ul>
+					<div class="models-pagination" id="models-pagination">
+						<button class="models-page-btn" type="button" data-action="prev">上一页</button>
+						<span class="models-page-info" id="models-page-info">1 / 1</span>
+						<button class="models-page-btn" type="button" data-action="next">下一页</button>
+					</div>
+				</section>
+
+					</aside>
+			</section>
+		</article>
+	</PageShell>
+
+<script>
+	const initSidebarToggles = () => {
+		document.querySelectorAll<HTMLButtonElement>('.sidebar-toggle').forEach((btn) => {
+			if (btn.dataset.bound === 'true') return;
+			btn.dataset.bound = 'true';
+
+			const targetId = btn.dataset.target;
+			if (!targetId) return;
+
+			const list = document.getElementById(targetId) as HTMLUListElement | null;
+			if (!list) return;
+
+			const collapsedCount = 3;
+			const isModelsList = targetId === 'models-list';
+			const modelPageSize = 10;
+			let modelPage = 1;
+			const modelPagination = isModelsList ? document.getElementById('models-pagination') as HTMLDivElement | null : null;
+			const modelPageInfo = isModelsList ? document.getElementById('models-page-info') as HTMLSpanElement | null : null;
+			const modelPrevBtn = modelPagination?.querySelector<HTMLButtonElement>('[data-action="prev"]') ?? null;
+			const modelNextBtn = modelPagination?.querySelector<HTMLButtonElement>('[data-action="next"]') ?? null;
+
+			const updateModelPagination = (totalItems: number) => {
+				if (!modelPagination || !modelPageInfo || !modelPrevBtn || !modelNextBtn) return;
+				const totalPages = Math.max(1, Math.ceil(totalItems / modelPageSize));
+				modelPage = Math.min(modelPage, totalPages);
+				modelPageInfo.textContent = `${modelPage} / ${totalPages}`;
+				modelPrevBtn.disabled = modelPage <= 1;
+				modelNextBtn.disabled = modelPage >= totalPages;
+				modelPagination.classList.toggle('is-hidden', totalPages <= 1 || btn.getAttribute('aria-expanded') !== 'true');
+			};
+
+			const updateDisplay = () => {
+				const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+				const items = Array.from(list.querySelectorAll<HTMLLIElement>('li'));
+
+				if (isModelsList && isExpanded) {
+					const startIndex = (modelPage - 1) * modelPageSize;
+					const endIndex = startIndex + modelPageSize;
+					items.forEach((item, index) => {
+						const shouldShow = index >= startIndex && index < endIndex;
+						item.classList.toggle('is-collapsed-hidden', !shouldShow);
+					});
+					updateModelPagination(items.length);
+				} else {
+					items.forEach((item, index) => {
+						const shouldShow = isExpanded || index < collapsedCount;
+						item.classList.toggle('is-collapsed-hidden', !shouldShow);
+					});
+					if (isModelsList && modelPagination) {
+						modelPagination.classList.add('is-hidden');
+					}
+				}
+
+				btn.textContent = isExpanded ? '收起' : '展开';
+			};
+
+			btn.addEventListener('click', () => {
+				const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+				btn.setAttribute('aria-expanded', String(!isExpanded));
+				if (isModelsList && !isExpanded) {
+					modelPage = 1;
+				}
+				updateDisplay();
+			});
+
+			if (isModelsList && modelPagination && modelPagination.dataset.bound !== 'true') {
+				modelPagination.dataset.bound = 'true';
+				modelPrevBtn?.addEventListener('click', () => {
+					if (modelPage <= 1) return;
+					modelPage -= 1;
+					updateDisplay();
+				});
+				modelNextBtn?.addEventListener('click', () => {
+					const totalItems = list.querySelectorAll('li').length;
+					const totalPages = Math.max(1, Math.ceil(totalItems / modelPageSize));
+					if (modelPage >= totalPages) return;
+					modelPage += 1;
+					updateDisplay();
+				});
+			}
+
+			updateDisplay();
+		});
+	};
+
+	document.addEventListener('DOMContentLoaded', () => { initSidebarToggles(); });
+	document.addEventListener('astro:page-load', () => { initSidebarToggles(); });
+	initSidebarToggles();
+</script>
+
+<style>
+	:global(.page-shell__main) {
+		width: 100%;
+		max-width: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.gk-panel {
+		--home-side-space: max(1rem, calc((100% - 900px) / 2 + 1rem));
+		--panel-grid-opacity: 0.05;
+		--panel-fill-opacity: 0.05;
+		position: relative;
+		width: 100%;
+		box-sizing: border-box;
+		min-height: 100vh;
+		margin: 0;
+		padding-top: 0;
+		padding-bottom: 0;
+		padding-left: var(--home-side-space);
+		padding-right: 0;
+		border-radius: 0;
+		background:
+			repeating-linear-gradient(
+				0deg,
+				rgba(var(--gray-light), var(--panel-grid-opacity)) 0,
+				rgba(var(--gray-light), var(--panel-grid-opacity)) 1px,
+				transparent 1px,
+				transparent 16px
+			),
+			rgba(var(--gray-light), var(--panel-fill-opacity));
+		box-shadow: var(--box-shadow);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
+	}
+
+	.eyebrow {
+		margin: 0 0 0.5rem;
+		font-size: 0.8rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: rgb(var(--gray));
+	}
+
+	.lead {
+		margin: 0;
+		padding: 0.35rem 0;
+		font-size: clamp(1.6rem, 3.8vw, 2.5rem);
+		font-style: italic;
+		font-weight: 800;
+		letter-spacing: 0.12em;
+		line-height: 1.1;
+		text-transform: uppercase;
+		text-wrap: balance;
+		color: var(--accent);
+	}
+
+	.sub {
+		margin: 0.8rem 0 0;
+		font-size: 0.95rem;
+		letter-spacing: 0.06em;
+		color: rgb(var(--gray-dark));
+		opacity: 0.9;
+	}
+
+	.card-grid {
+		margin-top: 1rem;
+		padding-top: 1rem;
+		display: grid;
+		gap: 0.85rem;
+		grid-template-columns: 1fr minmax(220px, 280px);
+	}
+
+	.card {
+		padding: 0.85rem;
+		border-radius: 10px;
+	}
+
+	.card h2 {
+		margin: 0 0 0.75rem;
+		font-size: 1rem;
+		letter-spacing: 0.05em;
+	}
+
+	.card--blog {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.sidebar {
+		display: flex;
+		flex-direction: column;
+		gap: 0.85rem;
+	}
+
+	.card--sidebar {
+		align-self: start;
+	}
+
+	.sidebar-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.sidebar-head h2 {
+		margin: 0;
+		font-size: 0.95rem;
+	}
+
+	.sidebar-toggle {
+		font-size: 0.82rem;
+		line-height: 1;
+		padding: 0.35rem 0.55rem;
+		border-radius: 8px;
+		background: transparent;
+		color: rgb(var(--gray-dark));
+		cursor: pointer;
+		transition: 0.2s ease;
+	}
+
+	.sidebar-toggle:hover {
+		color: var(--accent);
+	}
+
+	.blog-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2rem;
+	}
+
+	.blog-item {
+		width: calc(50% - 1rem);
+		display: flex;
+		flex-direction: column;
+	}
+
+	.blog-item a {
+		display: block;
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.blog-image {
+		width: 100%;
+		margin-bottom: 0.5rem;
+		border-radius: 10px;
+		overflow: hidden;
+	}
+
+	.blog-image img {
+		width: 100%;
+		height: auto;
+		display: block;
+		transition: 0.2s ease;
+		border-radius: 12px;
+	}
+
+	.blog-item a:hover .blog-image img {
+		transform: scale(1.05);
+	}
+
+	.blog-title {
+		margin: 0;
+		font-size: 1.5rem;
+		font-weight: 600;
+		color: rgb(var(--black));
+		line-height: 1.2;
+	}
+
+	.blog-item a:hover .blog-title {
+		color: var(--accent);
+	}
+
+	.blog-date {
+		margin: 0;
+		font-size: 0.9rem;
+		color: rgb(var(--gray));
+	}
+
+	.stock-list,
+	.models-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: grid;
+		gap: 0.4rem;
+	}
+
+	.stock-list li,
+	.models-list li {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+		padding: 0.5rem 0;
+		font-size: 0.85rem;
+	}
+
+	.stock-list li.is-collapsed-hidden,
+	.models-list li.is-collapsed-hidden {
+		display: none;
+	}
+
+
+	.stock-list li {
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
+	.paint-name {
+		font-weight: 600;
+		color: rgb(var(--black));
+	}
+
+	.paint-brand {
+		font-size: 0.8rem;
+		color: rgb(var(--gray));
+	}
+
+	.paint-amount {
+		font-weight: 700;
+		color: var(--accent);
+		font-size: 0.9rem;
+	}
+
+	.model-thumb {
+		width: 50px;
+		height: 50px;
+		object-fit: cover;
+		border-radius: 6px;
+		flex-shrink: 0;
+	}
+
+	.model-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.model-name {
+		font-weight: 600;
+		color: rgb(var(--black));
+		display: inline-block;
+		text-decoration: none;
+		transition: 0.2s ease;
+		cursor: pointer;
+	}
+
+	.model-name:hover {
+		color: var(--accent);
+	}
+
+	.model-scale {
+		font-size: 0.8rem;
+		color: rgb(var(--gray));
+	}
+
+	.model-status {
+		font-size: 0.8rem;
+		padding: 0.15rem 0.4rem;
+		border-radius: 4px;
+		background: rgba(var(--accent-rgb), 0.1);
+		color: var(--accent);
+		display: inline-block;
+		width: fit-content;
+	}
+
+	.models-pagination {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 0.4rem;
+		margin-top: 0.45rem;
+	}
+
+	.models-pagination.is-hidden {
+		display: none;
+	}
+
+	.models-page-btn {
+		font-size: 0.75rem;
+		line-height: 1;
+		padding: 0.3rem 0.45rem;
+		border-radius: 6px;
+		background: transparent;
+		color: rgb(var(--gray-dark));
+		cursor: pointer;
+		transition: 0.2s ease;
+	}
+
+	.models-page-btn:hover:not(:disabled) {
+		color: var(--accent);
+	}
+
+	.models-page-btn:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+
+	.models-page-info {
+		font-size: 0.75rem;
+		color: rgb(var(--gray));
+	}
+
+	@media (max-width: 900px) {
+		.gk-panel {
+			padding-left: 1rem;
+			padding-right: 0;
+		}
+
+		.card-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.sidebar {
+			display: grid;
+			grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		}
+	}
+
+	@media (max-width: 600px) {
+		.sidebar {
+			grid-template-columns: 1fr;
+		}
+
+		.blog-list {
+			gap: 1.5rem;
+		}
+	}
+</style>

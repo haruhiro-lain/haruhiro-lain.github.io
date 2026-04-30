@@ -1,0 +1,13 @@
+{
+  // 继承Astro的严格TypeScript配置
+  "extends": "astro/tsconfigs/strict",
+  // 包含的文件
+  "include": [
+    ".astro/types.d.ts",
+    "src/**/*",
+    "astro.config.mjs",
+    "src/content.config.ts"
+  ],
+  // 排除的文件/目录
+  "exclude": ["dist", "node_modules", "src/pages/life/lanjiuguan.astro"]
+}

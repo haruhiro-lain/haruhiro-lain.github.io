@@ -1,0 +1,586 @@
+---
+import { Image } from 'astro:assets';
+import type { CollectionEntry } from 'astro:content';
+import FormattedDate from '../../../components/FormattedDate.astro';
+import PageShell from '../../../layouts/PageShell.astro';
+import { getSortedPosts } from '../../../utils/content';
+import FallbackImage from '../../../assets/blog-placeholder-about.jpg';
+import { cabinetStockList } from '../../../data/cabinetStock';
+
+const normalizePostId = (id: string) => id.replaceAll('\\', '/');
+const toVAUppercaseHref = (id: string) => {
+	const normalized = normalizePostId(id);
+	if (normalized.toLowerCase().startsWith('va-11_hall-a/')) {
+		return `/life/VA-11_Hall-A/${normalized.slice('va-11_hall-a/'.length)}/`;
+	}
+	return `/life/${normalized}/`;
+};
+
+const vaPosts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life'>) =>
+	normalizePostId(post.id).toLowerCase().startsWith('va-11_hall-a/'),
+);
+
+const cabinetStock = [...cabinetStockList].sort(
+	(a, b) => b.recentDate.localeCompare(a.recentDate),
+);
+
+const normalizeIngredientName = (value: string) => value.replace(/\s+/g, '').toLowerCase();
+
+const parseQuotedStrings = (source: string) =>
+	Array.from(source.matchAll(/"([^"]+)"/g)).map((match) => match[1]?.trim() ?? '').filter(Boolean);
+
+const extractSpiritIngredients = (body: string) => {
+	const directMatch = body.match(/spiritIngredients\s*[:=][\s\S]*?=\s*\[([\s\S]*?)\]/m);
+	if (directMatch?.[1]) {
+		return parseQuotedStrings(directMatch[1]);
+	}
+
+	const constructorMatch = body.match(/=\s*MkDrinkMenu\s*[\r\n]+\s*(\[[\s\S]*?\])/m);
+	if (constructorMatch?.[1]) {
+		return parseQuotedStrings(constructorMatch[1]);
+	}
+
+	return [];
+};
+
+const cabinetStockNames = cabinetStock.map((item) => item.name).filter(Boolean);
+const normalizedCabinetNames = cabinetStockNames.map(normalizeIngredientName);
+
+const isIngredientAvailable = (ingredient: string) => {
+	const normalizedIngredient = normalizeIngredientName(ingredient);
+	return normalizedCabinetNames.some(
+		(stock) => stock.includes(normalizedIngredient) || normalizedIngredient.includes(stock),
+	);
+};
+
+const matchedMenus = vaPosts
+	.map((post: CollectionEntry<'life'>) => {
+		const spiritIngredients = extractSpiritIngredients(post.body ?? '');
+		return {
+			title: post.data.title,
+			href: toVAUppercaseHref(post.id),
+			spiritIngredients,
+		};
+	})
+	.filter((menu) => menu.spiritIngredients.length > 0)
+	.filter((menu) => menu.spiritIngredients.every((ingredient) => isIngredientAvailable(ingredient)));
+---
+
+<PageShell title="烂酒罐" contentWidth="100%">
+	<article class="va-panel">
+		<p class="eyebrow">VA-11 Hall-A: Cyberpunk Bartender Action</p>
+		<p class="lead">调制饮料，改变人生</p>
+		<section class="card-grid">
+			<section class="card card--blog">
+				{vaPosts.length > 0 ? (
+					<ul class="blog-list">
+						{vaPosts.map((post: CollectionEntry<'life'>) => (
+							<li class="blog-item">
+								<a href={toVAUppercaseHref(post.id)}>
+									<div class="blog-image">
+									<Image width={360} height={180} src={post.data.heroImage ?? FallbackImage} alt={post.data.title} />
+									</div>
+									<h3 class="blog-title">{post.data.title}</h3>
+									<p class="blog-date"><FormattedDate date={post.data.pubDate} /></p>
+								</a>
+							</li>
+						))}
+					</ul>
+				) : (
+					<p class="sub">还没有配方记录，先去调一杯吧。</p>
+				)}
+			</section>
+
+			<section class="card card--stock">
+				<div class="sidebar-head">
+					<h2>剩余...</h2>
+					<button class="sidebar-toggle" id="stock-toggle" type="button" aria-expanded="false">
+						展开
+					</button>
+				</div>
+				<ul class="stock-list" id="stock-list">
+					{cabinetStock.map((item) => (
+						<li>
+							<span>{item.name}</span>
+							<strong>{item.recentDate || '待记录'}</strong>
+						</li>
+					))}
+				</ul>
+				<div class="stock-pagination" id="stock-pagination" hidden>
+					<button id="stock-prev" type="button">上一页</button>
+					<span id="stock-page-info">1 / 1</span>
+					<button id="stock-next" type="button">下一页</button>
+				</div>
+				<div class="draw-menu">
+					<button class="draw-menu-btn" id="draw-menu-btn" type="button">抽卡</button>
+					<section class="draw-result" id="draw-result" hidden>
+						<h3 id="draw-result-title">今日烂酒罐酒单</h3>
+						<p id="draw-result-link-wrap" hidden>
+							<a id="draw-result-link" href="#">查看配方</a>
+						</p>
+						<ul id="draw-result-list"></ul>
+						<p id="draw-result-meta"></p>
+					</section>
+				</div>
+			</section>
+		</section>
+	</article>
+</PageShell>
+
+<script type="application/json" id="matched-menus-data" set:html={JSON.stringify(matchedMenus)}></script>
+
+<script>
+	const initStockPanel = () => {
+		const matchedMenusDataElement = document.getElementById('matched-menus-data');
+		const matchedMenus = JSON.parse(matchedMenusDataElement?.textContent ?? '[]');
+
+		const stockToggle = document.getElementById('stock-toggle');
+		const stockList = document.getElementById('stock-list');
+		const stockPagination = document.getElementById('stock-pagination');
+		const stockPrev = document.getElementById('stock-prev');
+		const stockNext = document.getElementById('stock-next');
+		const stockPageInfo = document.getElementById('stock-page-info');
+		const drawMenuButton = document.getElementById('draw-menu-btn');
+		const drawResult = document.getElementById('draw-result');
+		const drawResultTitle = document.getElementById('draw-result-title');
+		const drawResultLinkWrap = document.getElementById('draw-result-link-wrap');
+		const drawResultLink = document.getElementById('draw-result-link');
+		const drawResultList = document.getElementById('draw-result-list');
+		const drawResultMeta = document.getElementById('draw-result-meta');
+
+		if (
+			!stockToggle ||
+			!stockList ||
+			!stockPagination ||
+			!stockPrev ||
+			!stockNext ||
+			!stockPageInfo ||
+			!drawMenuButton ||
+			!drawResult ||
+			!drawResultTitle ||
+			!drawResultLinkWrap ||
+			!drawResultLink ||
+			!drawResultList ||
+			!drawResultMeta
+		) {
+			return;
+		}
+
+		if (stockToggle.dataset.bound === 'true') {
+			return;
+		}
+		stockToggle.dataset.bound = 'true';
+
+		const stockItems = Array.from(stockList.querySelectorAll('li'));
+		const collapsedCount = 3;
+		const pageSize = 10;
+		let expanded = false;
+		let currentPage = 1;
+
+		const renderStock = () => {
+			if (!expanded) {
+				stockItems.forEach((item, index) => {
+					item.hidden = index >= collapsedCount;
+				});
+				stockPagination.hidden = true;
+				stockToggle.textContent = '展开';
+				stockToggle.setAttribute('aria-expanded', 'false');
+				return;
+			}
+
+			const totalPages = Math.max(1, Math.ceil(stockItems.length / pageSize));
+			if (currentPage > totalPages) currentPage = totalPages;
+
+			const start = (currentPage - 1) * pageSize;
+			const end = start + pageSize;
+
+			stockItems.forEach((item, index) => {
+				item.hidden = index < start || index >= end;
+			});
+
+			stockPagination.hidden = totalPages <= 1;
+			stockPageInfo.textContent = `${currentPage} / ${totalPages}`;
+			if (currentPage <= 1) {
+				stockPrev.setAttribute('disabled', 'disabled');
+			} else {
+				stockPrev.removeAttribute('disabled');
+			}
+
+			if (currentPage >= totalPages) {
+				stockNext.setAttribute('disabled', 'disabled');
+			} else {
+				stockNext.removeAttribute('disabled');
+			}
+			stockToggle.textContent = '收起';
+			stockToggle.setAttribute('aria-expanded', 'true');
+		};
+
+		stockToggle.addEventListener('click', () => {
+			expanded = !expanded;
+			currentPage = 1;
+			renderStock();
+		});
+
+		stockPrev.addEventListener('click', () => {
+			currentPage -= 1;
+			renderStock();
+		});
+
+		stockNext.addEventListener('click', () => {
+			currentPage += 1;
+			renderStock();
+		});
+
+		const drawRandomMenu = () => {
+			if (!Array.isArray(matchedMenus) || matchedMenus.length === 0) {
+				drawResultTitle.textContent = '暂无可调酒单';
+				drawResultLinkWrap.hidden = true;
+				drawResultList.innerHTML = '';
+				drawResultMeta.textContent = '当前酒柜剩余无法匹配文章中的酒体材料。';
+				drawResult.hidden = false;
+				return;
+			}
+
+			const menu = matchedMenus[Math.floor(Math.random() * matchedMenus.length)];
+			drawResultTitle.textContent = `${menu.title}`;
+			drawResultLink.setAttribute('href', menu.href);
+			drawResultLinkWrap.hidden = false;
+
+			drawResultList.innerHTML = '';
+			const spiritIngredients = Array.isArray(menu.spiritIngredients) ? menu.spiritIngredients : [];
+			for (const ingredient of spiritIngredients) {
+				const name = String(ingredient);
+				const li = document.createElement('li');
+				li.textContent = name;
+				drawResultList.appendChild(li);
+			}
+
+			drawResultMeta.textContent = `在 ${matchedMenus.length} 篇匹配酒单中抽取`;
+			drawResult.hidden = false;
+		};
+
+		drawMenuButton.addEventListener('click', () => {
+			drawRandomMenu();
+		});
+
+		renderStock();
+	};
+
+	document.addEventListener('DOMContentLoaded', () => { initStockPanel(); });
+	document.addEventListener('astro:page-load', () => { initStockPanel(); });
+	initStockPanel();
+</script>
+
+<style>
+	:global(.page-shell__main) {
+		padding-top: 0;
+		padding-bottom: 0;
+	}
+
+	.va-panel {
+		--home-side-space: max(1rem, calc((100% - 900px) / 2 + 1rem));
+		--stock-min-width: 220px;
+		--stock-column-width: clamp(220px, 24vw, 280px);
+		--floating-actions-safe-space: 6rem;
+		--panel-grid-opacity: 0.05;
+		--panel-fill-opacity: 0.05;
+		position: relative;
+		width: 100%;
+		box-sizing: border-box;
+		min-height: 100vh;
+		margin: 0;
+		padding-top: 0;
+		padding-bottom: var(--floating-actions-safe-space);
+		padding-left: var(--home-side-space);
+		padding-right: 0;
+		border: none;
+		border-radius: 0;
+		background:
+			repeating-linear-gradient(
+				0deg,
+				rgba(var(--gray-light), var(--panel-grid-opacity)) 0,
+				rgba(var(--gray-light), var(--panel-grid-opacity)) 1px,
+				transparent 1px,
+				transparent 16px
+			),
+			rgba(var(--gray-light), var(--panel-fill-opacity));
+		box-shadow: var(--box-shadow);
+		backdrop-filter: blur(6px);
+		-webkit-backdrop-filter: blur(6px);
+	}
+
+	.eyebrow {
+		margin: 0 0 0.5rem;
+		font-size: 0.8rem;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: rgb(var(--gray));
+	}
+
+	.lead {
+		margin: 0;
+		padding: 0.35rem 0;
+		font-size: clamp(1.6rem, 3.8vw, 2.5rem);
+		font-style: italic;
+		font-weight: 800;
+		letter-spacing: 0.12em;
+		line-height: 1.1;
+		text-transform: uppercase;
+		text-wrap: balance;
+		color: var(--accent);
+	}
+
+	.sub {
+		margin: 0.8rem 0 0;
+		font-size: 0.95rem;
+		letter-spacing: 0.06em;
+		color: rgb(var(--gray-dark));
+		opacity: 0.9;
+	}
+
+	.card-grid {
+		margin-top: 1rem;
+		padding-top: 1rem;
+		display: grid;
+		gap: 0.85rem;
+		grid-template-columns: minmax(0, 1fr) var(--stock-column-width);
+	}
+
+	.card {
+		padding: 0.85rem;
+		border-radius: 10px;
+	}
+
+	.card h2 {
+		margin: 0 0 0.75rem;
+		font-size: 1rem;
+		letter-spacing: 0.05em;
+	}
+
+	.card--blog {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.card--stock {
+		min-width: var(--stock-min-width);
+		align-self: start;
+		transform: translateX(-1.9rem);
+	}
+
+	.sidebar-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.sidebar-head h2 {
+		margin: 0;
+		font-size: 0.95rem;
+	}
+
+	.sidebar-toggle {
+		font-size: 0.82rem;
+		line-height: 1;
+		padding: 0.35rem 0.55rem;
+		border-radius: 8px;
+		background: transparent;
+		color: rgb(var(--gray-dark));
+		cursor: pointer;
+		transition: 0.2s ease;
+	}
+
+	.sidebar-toggle:hover {
+		color: var(--accent);
+	}
+
+	.blog-list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+	}
+
+	.blog-item {
+		width: calc(33.333% - 0.667rem);
+		display: flex;
+		flex-direction: column;
+	}
+
+	.blog-item a {
+		display: block;
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.blog-image {
+		width: 100%;
+		margin-bottom: 0.5rem;
+		border-radius: 10px;
+		overflow: hidden;
+	}
+
+	.blog-image img {
+		width: 100%;
+		height: auto;
+		display: block;
+		transition: 0.2s ease;
+		border-radius: 12px;
+	}
+
+	.blog-item a:hover .blog-image img {
+		transform: scale(1.05);
+	}
+
+	.blog-title {
+		margin: 0;
+		font-size: 1rem;
+		font-weight: 600;
+		color: rgb(var(--black));
+		line-height: 1.2;
+	}
+
+	.blog-item a:hover .blog-title {
+		color: var(--accent);
+	}
+
+	.blog-date {
+		margin: 0;
+		font-size: 0.78rem;
+		color: rgb(var(--gray));
+	}
+
+	.stock-list {
+		list-style: disc;
+		padding-left: 1.25rem;
+		margin: 0;
+		display: grid;
+		gap: 0.35rem;
+	}
+
+	.stock-list li {
+		display: flex;
+		justify-content: space-between;
+		gap: 0.5rem;
+		font-size: 0.92rem;
+		color: rgb(var(--gray-dark));
+	}
+
+	.stock-list li[hidden] {
+		display: none !important;
+	}
+
+	.stock-list strong {
+		font-weight: 700;
+		color: var(--accent);
+	}
+
+	.stock-pagination {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		margin-top: 0.65rem;
+	}
+
+	.stock-pagination[hidden] {
+		display: none !important;
+	}
+
+	.stock-pagination button {
+		font-size: 0.8rem;
+		padding: 0.3rem 0.5rem;
+		border-radius: 6px;
+		background: transparent;
+		color: rgb(var(--gray-dark));
+	}
+
+	.stock-pagination button:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.stock-pagination span {
+		font-size: 0.8rem;
+		color: rgb(var(--gray));
+	}
+
+	.draw-menu {
+		margin-top: 0.9rem;
+		display: grid;
+		gap: 0.6rem;
+	}
+
+	.draw-menu-btn {
+		font-size: 0.84rem;
+		padding: 0.45rem 0.6rem;
+		border-radius: 8px;
+		background: transparent;
+		color: rgb(var(--gray-dark));
+		cursor: pointer;
+		transition: 0.2s ease;
+	}
+
+	.draw-menu-btn:hover {
+		color: var(--accent);
+	}
+
+	.draw-result {
+		padding: 0.55rem 0.6rem;
+		border-radius: 8px;
+		background: rgba(var(--gray-light), 0.18);
+	}
+
+	.draw-result[hidden] {
+		display: none !important;
+	}
+
+	.draw-result h3 {
+		margin: 0;
+		font-size: 0.86rem;
+		letter-spacing: 0.04em;
+		color: rgb(var(--gray-dark));
+	}
+
+	.draw-result ul {
+		margin: 0.4rem 0 0;
+		padding-left: 1.05rem;
+		display: grid;
+		gap: 0.2rem;
+	}
+
+	.draw-result li {
+		font-size: 0.85rem;
+		color: rgb(var(--gray-dark));
+	}
+
+	.draw-result p {
+		margin: 0.45rem 0 0;
+		font-size: 0.76rem;
+		color: rgb(var(--gray));
+	}
+
+	@media (max-width: 900px) {
+		.va-panel {
+			padding-left: 1rem;
+			padding-right: 1rem;
+			padding-bottom: 1rem;
+		}
+
+		.card-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.blog-item {
+			width: calc(50% - 0.5rem);
+		}
+
+		.card--stock {
+			transform: none;
+		}
+	}
+</style>

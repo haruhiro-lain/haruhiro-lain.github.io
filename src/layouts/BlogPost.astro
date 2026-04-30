@@ -1,0 +1,427 @@
+---
+import { Image } from 'astro:assets';
+import type { MarkdownHeading } from 'astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import PageShell from './PageShell.astro';
+
+type Props = {
+	title?: string;
+	description?: string;
+	pubDate?: Date;
+	tags?: string[];
+	updatedDate?: Date;
+	heroImage?: any;
+	headings?: MarkdownHeading[];
+	entryCollection?: string;
+	entryId?: string;
+	entryBaseDir?: string;
+};
+
+const {
+	title,
+	description,
+	pubDate,
+	updatedDate,
+	heroImage,
+	headings = [],
+	entryCollection,
+	entryId,
+	entryBaseDir,
+} = Astro.props as Props;
+const outlineHeadings = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 3);
+const contentImageModules = import.meta.glob('../content/**/*.{png,jpg,jpeg,webp,avif,gif,svg}', {
+	eager: true,
+	import: 'default',
+	query: '?url',
+});
+const contentImageUrlMap = contentImageModules as Record<string, string>;
+---
+
+<PageShell title={title} description={description} contentWidth="100%">
+	<article class:list={["post-article", 'post-article--with-outline']}>
+		{
+			outlineHeadings.length > 0 && (
+				<aside class="post-outline" aria-label="文章大纲" tabindex="0">
+					<div class="post-outline__inner">
+						<ul class="post-outline__list">
+							{outlineHeadings.map((heading) => (
+								<li
+									class:list={[
+										'post-outline__item',
+										heading.depth >= 3 && 'post-outline__item--nested',
+									]}
+								>
+									<a href={`#${heading.slug}`}>{heading.text}</a>
+								</li>
+							))}
+						</ul>
+					</div>
+				</aside>
+			)
+		}
+		<div class="post-content">
+			<div class="hero-image">
+				{heroImage && <Image width={1020} height={510} src={heroImage} alt="" />}
+			</div>
+			<div
+				class="prose"
+				data-entry-collection={entryCollection}
+				data-entry-id={entryId}
+				data-entry-base-dir={entryBaseDir}
+			>
+				{
+					(title || pubDate || updatedDate) && (
+						<div class="title">
+							{(pubDate || updatedDate) && (
+								<div class="date">
+									{pubDate && <FormattedDate date={pubDate} />}
+									{updatedDate && (
+										<div class="last-updated-on">
+											Last updated on <FormattedDate date={updatedDate} />
+										</div>
+									)}
+								</div>
+							)}
+							{title && <h1>{title}</h1>}
+							<hr />
+						</div>
+					)
+				}
+				<slot />
+			</div>
+		</div>
+	</article>
+
+	<script id="content-image-url-map" type="application/json" is:inline set:html={JSON.stringify(contentImageUrlMap)}></script>
+
+	<script is:inline>
+	const resolveContentScopedImages = () => {
+		const prose = document.querySelector('.prose');
+		if (!(prose instanceof HTMLElement)) {
+			return;
+		}
+
+		const entryBaseDir = prose.dataset.entryBaseDir;
+		if (!entryBaseDir) {
+			return;
+		}
+
+		const mapScript = document.getElementById('content-image-url-map');
+		if (!(mapScript instanceof HTMLScriptElement) || !mapScript.textContent) {
+			return;
+		}
+
+		let imageUrlMap = {};
+		try {
+			imageUrlMap = JSON.parse(mapScript.textContent);
+		} catch {
+			return;
+		}
+
+		const caseInsensitiveImageUrlMap = Object.create(null);
+		for (const [imageKey, imageUrl] of Object.entries(imageUrlMap)) {
+			caseInsensitiveImageUrlMap[imageKey.toLowerCase()] = imageUrl;
+		}
+
+		const imageNodes = prose.querySelectorAll('img');
+
+		imageNodes.forEach((imageNode) => {
+			const rawSrc = (imageNode.getAttribute('src') ?? '').trim();
+			const inlineStyle = imageNode.getAttribute('style') ?? '';
+			if (!rawSrc) {
+				return;
+			}
+
+			if (rawSrc.startsWith('/') || rawSrc.startsWith('http') || rawSrc.startsWith('data:')) {
+				return;
+			}
+
+			const normalizedSrc = rawSrc.replaceAll('\\', '/');
+			const normalizedBaseDir = entryBaseDir.endsWith('/') ? entryBaseDir : `${entryBaseDir}/`;
+			let resolvedUrl = '';
+
+			if (normalizedSrc.startsWith('./')) {
+				const baseRelativeKey = `${normalizedBaseDir}${normalizedSrc.slice(2)}`;
+				resolvedUrl = caseInsensitiveImageUrlMap[baseRelativeKey.toLowerCase()] ?? '';
+			} else if (normalizedSrc.startsWith('../')) {
+				const srcSegments = normalizedSrc.split('/');
+				const baseSegments = normalizedBaseDir.split('/').filter(Boolean);
+				while (srcSegments[0] === '..') {
+					srcSegments.shift();
+					if (baseSegments.length > 0) {
+						baseSegments.pop();
+					}
+				}
+				const baseRelativeKey = `../${[...baseSegments, ...srcSegments].join('/')}`;
+				resolvedUrl = caseInsensitiveImageUrlMap[baseRelativeKey.toLowerCase()] ?? '';
+			} else {
+				const baseRelativeKey = `${normalizedBaseDir}${normalizedSrc}`;
+				resolvedUrl = caseInsensitiveImageUrlMap[baseRelativeKey.toLowerCase()] ?? '';
+			}
+
+			if (!resolvedUrl || typeof resolvedUrl !== 'string') {
+				const zoomMatch = inlineStyle.match(/(?:^|;)\s*zoom\s*:\s*([\d.]+)\s*%\s*(?:;|$)/i);
+				if (zoomMatch) {
+					const zoomPercent = Number.parseFloat(zoomMatch[1]);
+					if (Number.isFinite(zoomPercent) && zoomPercent > 0) {
+						imageNode.style.width = `${zoomPercent}%`;
+						imageNode.style.height = 'auto';
+						imageNode.style.zoom = '';
+					}
+				}
+				return;
+			}
+
+			imageNode.setAttribute('src', resolvedUrl);
+
+			const zoomMatch = inlineStyle.match(/(?:^|;)\s*zoom\s*:\s*([\d.]+)\s*%\s*(?:;|$)/i);
+			if (zoomMatch) {
+				const zoomPercent = Number.parseFloat(zoomMatch[1]);
+				if (Number.isFinite(zoomPercent) && zoomPercent > 0) {
+					imageNode.style.width = `${zoomPercent}%`;
+					imageNode.style.height = 'auto';
+					imageNode.style.zoom = '';
+				}
+			}
+		});
+	};
+
+	document.addEventListener('DOMContentLoaded', resolveContentScopedImages);
+	document.addEventListener('astro:page-load', resolveContentScopedImages);
+	resolveContentScopedImages();
+	</script>
+
+	<script is:inline>
+	const outline = document.querySelector('.post-outline');
+
+	if (outline instanceof HTMLElement) {
+		const OPEN_CLASS = 'is-open';
+		const LOCK_CLASS = 'is-locked';
+		const CLOSE_DELAY_MS = 200;
+		const outlineInner = outline.querySelector('.post-outline__inner');
+		let closeTimer = null;
+		let isLocked = false;
+
+		const syncLockState = (locked) => {
+			window.dispatchEvent(
+				new CustomEvent('outline-lock-state-change', {
+					detail: { locked },
+				}),
+			);
+		};
+
+		const openOutline = () => {
+			if (closeTimer !== null) {
+				window.clearTimeout(closeTimer);
+				closeTimer = null;
+			}
+			outline.classList.add(OPEN_CLASS);
+		};
+
+		const closeOutlineWithDelay = () => {
+			if (isLocked) {
+				return;
+			}
+			if (closeTimer !== null) {
+				window.clearTimeout(closeTimer);
+			}
+			closeTimer = window.setTimeout(() => {
+				if (isLocked) {
+					return;
+				}
+				outline.classList.remove(OPEN_CLASS);
+				closeTimer = null;
+			}, CLOSE_DELAY_MS);
+		};
+
+		const setLockState = (locked) => {
+			isLocked = locked;
+			outline.classList.toggle(LOCK_CLASS, locked);
+			if (locked) {
+				openOutline();
+				return;
+			}
+			if (closeTimer !== null) {
+				window.clearTimeout(closeTimer);
+				closeTimer = null;
+			}
+			outline.classList.remove(OPEN_CLASS);
+		};
+
+		outline.addEventListener('mouseenter', openOutline);
+		outline.addEventListener('mouseleave', closeOutlineWithDelay);
+		outline.addEventListener('focusin', openOutline);
+		outline.addEventListener('focusout', (event) => {
+			const nextTarget = event.relatedTarget;
+			if (nextTarget instanceof Node && outline.contains(nextTarget)) {
+				return;
+			}
+			closeOutlineWithDelay();
+		});
+
+		if (outlineInner instanceof HTMLElement) {
+			outlineInner.addEventListener('click', (event) => {
+				const clickTarget = event.target;
+				if (clickTarget instanceof Element && clickTarget.closest('a')) {
+					return;
+				}
+				setLockState(!isLocked);
+				syncLockState(isLocked);
+			});
+		}
+
+		window.addEventListener('outline-lock-toggle', (event) => {
+			if (!(event instanceof CustomEvent)) {
+				return;
+			}
+			setLockState(event.detail?.locked === true);
+			syncLockState(isLocked);
+		});
+	}
+	</script>
+</PageShell>
+
+<style>
+	.post-article {
+		width: 100%;
+	}
+
+	.post-article--with-outline {
+		padding-left: 220px;
+		padding-right: 220px;
+		box-sizing: border-box;
+	}
+
+	.post-outline {
+		--outline-top-offset: calc(3.4rem - 1px);
+		position: fixed;
+		left: 0;
+		top: var(--outline-top-offset) !important;
+		width: 220px;
+		height: calc(100vh - var(--outline-top-offset)) !important;
+		padding: 0;
+		box-sizing: border-box;
+		z-index: 1050;
+		transform: translateX(-100%);
+		transition: transform 240ms ease;
+	}
+
+	/* 左侧不可见触发区，维持鼠标靠近时展开大纲的逻辑 */
+	.post-outline::before {
+		content: '';
+		position: absolute;
+		right: -20px;
+		top: 0;
+		width: 20px;
+		height: 100%;
+	}
+
+	.post-outline:hover,
+	.post-outline.is-open {
+		transform: translateX(0);
+	}
+
+	.post-outline__inner {
+		height: 100%;
+		padding: 1rem 0.9rem;
+		border: none;
+		background: color-mix(in srgb, var(--overlay-bg-strong) 72%, transparent);
+		backdrop-filter: blur(20px) saturate(118%);
+		-webkit-backdrop-filter: blur(20px) saturate(118%);
+		box-shadow: var(--box-shadow);
+		overflow: auto;
+	}
+
+	.post-outline__list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: 0.25rem;
+	}
+
+	.post-outline__item a {
+		display: block;
+		padding: 0.35rem 0.45rem;
+		border-radius: 8px;
+		text-decoration: none;
+		color: rgb(var(--gray-dark));
+		font-size: 0.94rem;
+		line-height: 1.4;
+	}
+
+	.post-outline__item a:hover {
+		background: var(--overlay-card);
+		color: rgb(var(--black));
+	}
+
+	.post-outline__item--nested a {
+		padding-left: 1.1rem;
+		font-size: 0.9rem;
+		color: rgb(var(--gray));
+	}
+
+	.post-content {
+		min-width: 0;
+		width: 100%;
+	}
+
+	.hero-image {
+		width: min(100%, var(--content-width-base));
+		margin: 0 auto;
+	}
+
+	.hero-image img {
+		display: block;
+		margin: 0 auto;
+		border-radius: 12px;
+		box-shadow: var(--box-shadow);
+	}
+
+	.prose {
+		width: min(100%, var(--content-width-base));
+		max-width: 100%;
+		margin: auto;
+		padding: 1em;
+		color: rgb(var(--gray-dark));
+	}
+
+	.title {
+		margin-bottom: 1em;
+		padding: 1em 0;
+		text-align: center;
+		line-height: 1;
+	}
+
+	.title h1 {
+		margin: 0 0 0.5em 0;
+	}
+
+	.date {
+		margin-bottom: 0.5em;
+		color: rgb(var(--gray));
+	}
+
+	.last-updated-on {
+		font-style: italic;
+	}
+
+	@media (max-width: 720px) {
+		.post-article--with-outline {
+			padding-left: 0;
+			padding-right: 0;
+		}
+
+		.post-outline {
+			--outline-top-offset: calc(5.8rem - 1px);
+			top: var(--outline-top-offset) !important;
+			height: calc(100vh - var(--outline-top-offset)) !important;
+			width: 200px;
+			transform: translateX(-100%);
+		}
+
+		.prose {
+			padding: 0.75rem;
+		}
+	}
+</style>
