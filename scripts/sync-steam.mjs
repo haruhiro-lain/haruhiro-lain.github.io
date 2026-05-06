@@ -10,7 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_PATH = resolve(__dirname, '../src/data/steamRecentGames.ts');
 const CACHE_DIR_PATH = resolve(__dirname, '../src/assets/steam-cache');
 const PROFILE_URL = 'https://steamcommunity.com/profiles/76561199036753865/';
-const DEFAULT_STEAM_ID = '76561199036753865';
+const PROFILE_GAMES_URL = `${PROFILE_URL}games/?tab=recent&l=english`;
 const REQUEST_TIMEOUT_MS = 20000;
 
 const decodeHtml = (text) =>
@@ -36,17 +36,6 @@ const formatHours = (value) => {
 	if (typeof value !== 'number' || !Number.isFinite(value)) return '';
 	const rounded = Math.round(value * 10) / 10;
 	return Number.isInteger(rounded) ? String(rounded) : String(rounded);
-};
-
-const formatLastPlayed = (unixSeconds) => {
-	if (typeof unixSeconds !== 'number' || !Number.isFinite(unixSeconds) || unixSeconds <= 0) {
-		return '';
-	}
-
-	return new Date(unixSeconds * 1000).toLocaleDateString('en-GB', {
-		day: 'numeric',
-		month: 'short',
-	});
 };
 
 const parseTwoWeeksTotal = (html) => {
@@ -99,35 +88,6 @@ const parseGames = (html) => {
 	return games;
 };
 
-const parseGamesFromWebApi = (payload) => {
-	const response = payload?.response;
-	const recentGames = Array.isArray(response?.games) ? response.games : [];
-
-	return recentGames
-		.map((game) => {
-			const appId = typeof game?.appid === 'number' ? game.appid : null;
-			const name = typeof game?.name === 'string' ? game.name.trim() : '';
-			if (!appId || !name) return null;
-
-			const totalHours = typeof game?.playtime_forever === 'number' ? Math.round((game.playtime_forever / 60) * 10) / 10 : null;
-			const lastTwoWeeksHours = typeof game?.playtime_2weeks === 'number' ? Math.round((game.playtime_2weeks / 60) * 10) / 10 : null;
-
-			return {
-				name,
-				appId,
-				appUrl: `https://steamcommunity.com/app/${appId}`,
-				coverImageUrl: `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/capsule_184x69.jpg`,
-				coverImageLocalPath: '',
-				lastTwoWeeksHours,
-				lastTwoWeeksText: lastTwoWeeksHours === null ? '' : `${formatHours(lastTwoWeeksHours)} hrs`,
-				totalHours,
-				totalHoursText: totalHours === null ? '' : `${formatHours(totalHours)} hrs`,
-				lastPlayedText: formatLastPlayed(game?.rtime_last_played),
-			};
-		})
-		.filter(Boolean);
-};
-
 const hasUsableSteamGameData = (html) => {
 	if (!html) return false;
 	return /recentgame_recentplaytime/i.test(html) || /game_info_cap/i.test(html);
@@ -137,35 +97,6 @@ const isSteamLoginShell = (html) => {
 	if (!html) return false;
 	return /login_featuretarget_ctn/i.test(html) || /strRedirectURL/i.test(html);
 };
-
-const getSteamEnv = () => {
-	const apiKey = (process.env.STEAM_WEB_API_KEY ?? '').trim();
-	const steamId = (process.env.STEAM_STEAM_ID ?? DEFAULT_STEAM_ID).trim();
-	const steamLoginSecure = (process.env.STEAM_COOKIE_STEAMLOGINSECURE ?? '').trim();
-	const sessionId = (process.env.STEAM_COOKIE_SESSIONID ?? '').trim();
-
-	return {
-		apiKey,
-		steamId,
-		steamLoginSecure,
-		sessionId,
-	};
-};
-
-const buildSteamCookieHeader = ({ steamLoginSecure, sessionId }) => {
-	const cookies = [];
-	if (steamLoginSecure) cookies.push(`steamLoginSecure=${steamLoginSecure}`);
-	if (sessionId) cookies.push(`sessionid=${sessionId}`);
-	return cookies.join('; ');
-};
-
-const buildMissingEnvHint = () =>
-	[
-		'缺失可用认证信息：',
-		'1) 推荐配置 STEAM_WEB_API_KEY（仅从环境变量读取，不可硬编码）',
-		'2) 或配置登录态 STEAM_COOKIE_STEAMLOGINSECURE（可选附加 STEAM_COOKIE_SESSIONID）',
-		'3) 可选配置 STEAM_STEAM_ID（默认使用脚本内账号）',
-	].join(' ');
 
 const serializeGames = (games) =>
 	games
@@ -240,19 +171,6 @@ const requestHtml = (url, extraHeaders = {}) =>
 		});
 	});
 
-const requestJson = async (url, extraHeaders = {}) => {
-	const text = await requestHtml(url, {
-		Accept: 'application/json,text/plain,*/*',
-		...extraHeaders,
-	});
-
-	try {
-		return JSON.parse(text);
-	} catch (error) {
-		throw new Error(`JSON 解析失败: ${error instanceof Error ? error.message : 'unknown error'}`);
-	}
-};
-
 const requestBinary = (url) =>
 	new Promise((resolvePromise, rejectPromise) => {
 		const req = https.get(
@@ -300,16 +218,12 @@ const requestBinary = (url) =>
 		});
 	});
 
-const requestHtmlViaPowerShell = (url, cookieHeader = '') => {
+const requestHtmlViaPowerShell = (url) => {
 	if (process.platform !== 'win32') {
 		throw new Error('PowerShell fallback is only available on Windows');
 	}
 
-	const escapedCookie = cookieHeader.replaceAll("'", "''");
-	const command =
-		cookieHeader.length > 0
-			? `$headers=@{'User-Agent'='Mozilla/5.0 (compatible; Astro-Blog personal site)';'Cookie'='${escapedCookie}'}; $resp = Invoke-WebRequest -Uri '${url}' -Headers $headers; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $resp.Content`
-			: `$resp = Invoke-WebRequest -Uri '${url}' -Headers @{'User-Agent'='Mozilla/5.0 (compatible; Astro-Blog personal site)'}; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $resp.Content`;
+	const command = `$resp = Invoke-WebRequest -Uri '${url}' -Headers @{'User-Agent'='Mozilla/5.0 (compatible; Astro-Blog personal site)'}; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $resp.Content`;
 	const result = spawnSync('powershell', ['-NoProfile', '-Command', command], {
 		encoding: 'utf8',
 		maxBuffer: 20 * 1024 * 1024,
@@ -425,42 +339,12 @@ const cacheSteamGameImages = async (games) => {
 };
 
 const fetchSteamProfile = async () => {
-	const { apiKey, steamId, steamLoginSecure, sessionId } = getSteamEnv();
-
-	if (apiKey) {
-		try {
-			const apiUrl =
-				`https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/` +
-				`?key=${encodeURIComponent(apiKey)}&steamid=${encodeURIComponent(steamId)}&format=json`;
-			const payload = await requestJson(apiUrl);
-			const games = parseGamesFromWebApi(payload);
-			const totalMinutes = typeof payload?.response?.total_playtime_2weeks === 'number' ? payload.response.total_playtime_2weeks : null;
-			const totalHours = totalMinutes === null ? null : Math.round((totalMinutes / 60) * 10) / 10;
-
-			return {
-				sourceType: 'web-api-key',
-				sourceUrl: apiUrl,
-				twoWeeks: {
-					hours: totalHours,
-					text: totalHours === null ? '' : `${formatHours(totalHours)} hours`,
-				},
-				games,
-			};
-		} catch (error) {
-			console.warn(`[sync-steam] Web API key 数据源失败，尝试登录态来源。${error instanceof Error ? ` ${error.message}` : ''}`);
-		}
-	}
-
-	const cookieHeader = buildSteamCookieHeader({ steamLoginSecure, sessionId });
-	const hasUsableAuth = cookieHeader.length > 0;
-
-	const tryFetchFromPage = async ({ targetUrl, sourceType, cookie }) => {
-		const requestHeaders = cookie ? { Cookie: cookie } : {};
+	const tryFetchFromPage = async ({ targetUrl, sourceType }) => {
 		let sawLoginShell = false;
 		let lastErrorMessage = '';
 
 		try {
-			const html = await requestHtml(targetUrl, requestHeaders);
+			const html = await requestHtml(targetUrl);
 			if (hasUsableSteamGameData(html)) {
 				return {
 					result: {
@@ -484,7 +368,7 @@ const fetchSteamProfile = async () => {
 		}
 
 		try {
-			const html = requestHtmlViaPowerShell(targetUrl, cookie);
+			const html = requestHtmlViaPowerShell(targetUrl);
 			if (hasUsableSteamGameData(html)) {
 				return {
 					result: {
@@ -516,17 +400,27 @@ const fetchSteamProfile = async () => {
 		};
 	};
 
+	const gamesPageResult = await tryFetchFromPage({
+		targetUrl: PROFILE_GAMES_URL,
+		sourceType: 'games-public',
+	});
+
+	if (gamesPageResult.result) {
+		return gamesPageResult.result;
+	}
+
 	const gamesResult = await tryFetchFromPage({
 		targetUrl: PROFILE_URL,
-		sourceType: hasUsableAuth ? 'profile-login-cookie' : 'profile-public',
-		cookie: hasUsableAuth ? cookieHeader : '',
+		sourceType: 'profile-public',
 	});
 
 	if (gamesResult.result) {
 		return gamesResult.result;
 	}
 
-	throw new Error(`未能从 Steam profile 页面获取可用数据。${gamesResult.lastErrorMessage || ''} ${buildMissingEnvHint()}`.trim());
+	throw new Error(
+		`未能从 Steam 公开页面获取可用数据。games: ${gamesPageResult.lastErrorMessage || 'unknown'}；profile: ${gamesResult.lastErrorMessage || 'unknown'}`,
+	);
 };
 
 const main = async () => {

@@ -15,7 +15,7 @@ recentDate: string;
 
 export const cabinetStockList: CabinetStockEntry[] = [
 	{ name: '格兰威特12年',      recentDate: '2026-04-22', purchaseDate: '', referencePrice: '', hasRemaining: true, note: '' },
-	{ name: '野牛仙踪威士忌',      recentDate: '2026-04-28', purchaseDate: '', referencePrice: '', hasRemaining: true, note: '' },
+	{ name: '野牛仙踪威士忌',      recentDate: '2026-05-03', purchaseDate: '', referencePrice: '', hasRemaining: true, note: '' },
 	{ name: '尊美醇威士忌',        recentDate: '2026-04-19', purchaseDate: '', referencePrice: '', hasRemaining: true, note: '' },
 	{ name: '尊尼获加黑方',        recentDate: '2026-04-19', purchaseDate: '', referencePrice: '', hasRemaining: true, note: '' },
 	{ name: '波本威士忌',          recentDate: '2026-04-19', purchaseDate: '', referencePrice: '', hasRemaining: true, note: '' },

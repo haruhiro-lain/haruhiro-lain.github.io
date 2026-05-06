@@ -1,4 +1,9 @@
-# Haruhiro Blog
+# Haruhiro-lain
 
-在这里写首页壁纸中央文本框的内容。
-支持常见 Markdown 语法。
+👋 Hi there, this is my personal website and blog.
+
+🔧 Built with Astro + Markdown/MDX, with some Vue3 components.
+
+🧩 I enjoy prototyping ideas and turning them into tangible builds.
+
+🌱 I’m currently learning Vue3, algorithms, and system design.

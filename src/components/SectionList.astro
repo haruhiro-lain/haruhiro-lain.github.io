@@ -23,8 +23,17 @@ const { title, posts, collection } = Astro.props as Props;
 					<li>
 						<a href={`/${collection}/${post.id}/`}>
 							<Image width={720} height={360} src={post.data.heroImage ?? FallbackImage} alt="" />
-							<h2 class="title">{post.data.title}</h2>
-							<p class="date"><FormattedDate date={post.data.pubDate} /></p>
+							<div class="card-body">
+								<h2 class="title">{post.data.title}</h2>
+								{post.data.tags.length > 0 && (
+									<ul class="tags" aria-label="文章标签">
+										{post.data.tags.map((tag: string) => (
+											<li>#{tag.trim()}</li>
+										))}
+									</ul>
+								)}
+								<p class="date"><FormattedDate date={post.data.pubDate} /></p>
+							</div>
 						</a>
 					</li>
 				))}
@@ -63,12 +72,27 @@ const { title, posts, collection } = Astro.props as Props;
 	}
 
 	.section-list li a {
-		display: block;
+		display: flex;
+		flex-direction: column;
+		height: 100%;
 		text-decoration: none;
+		color: rgb(var(--black));
+		border: 1px solid var(--overlay-border);
+		border-radius: 12px;
+		background: var(--overlay-card);
+		overflow: hidden;
 	}
 
 	.section-list li a:hover .title {
 		color: rgb(var(--accent));
+	}
+
+	.card-body {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		padding: 0.85rem 1rem;
+		flex: 1;
 	}
 
 	.title {
@@ -81,6 +105,27 @@ const { title, posts, collection } = Astro.props as Props;
 	.date {
 		margin: 0;
 		color: rgb(var(--gray));
+	}
+
+	.tags {
+		display: flex;
+		flex-wrap: nowrap;
+		gap: 0.35rem;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		overflow-x: auto;
+		overflow-y: hidden;
+	}
+
+	.tags li {
+		font-size: 0.76rem;
+		line-height: 1;
+		white-space: nowrap;
+		color: rgb(var(--gray));
+		border: 1px solid var(--overlay-border);
+		border-radius: 999px;
+		padding: 0.2rem 0.45rem;
 	}
 
 	@media (max-width: 720px) {

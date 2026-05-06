@@ -35,11 +35,6 @@ jobs:
         run: npm ci
 
       - name: Build site
-        env:
-          STEAM_WEB_API_KEY: ${{ secrets.STEAM_WEB_API_KEY }}
-          STEAM_STEAM_ID: ${{ secrets.STEAM_STEAM_ID }}
-          STEAM_COOKIE_STEAMLOGINSECURE: ${{ secrets.STEAM_COOKIE_STEAMLOGINSECURE }}
-          STEAM_COOKIE_SESSIONID: ${{ secrets.STEAM_COOKIE_SESSIONID }}
         run: npm run build
 
       - name: Upload artifact

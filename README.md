@@ -75,11 +75,14 @@ $env:STEAM_STEAM_ID="76561199036753865"
 ### GitHub 托管建议
 
 - 不要在代码中硬编码 key。
-- 在仓库 `Settings > Secrets and variables > Actions` 中配置：
+
+仅在你希望使用 Steam Web API 或登录态时，才需要在仓库 `Settings > Secrets and variables > Actions` 中配置：
 	- `STEAM_WEB_API_KEY`
 	- `STEAM_STEAM_ID`（可选）
 	- `STEAM_COOKIE_STEAMLOGINSECURE`（仅 fallback 需要）
 	- `STEAM_COOKIE_SESSIONID`（可选）
+
+若不配置这些变量，脚本会尝试仅从 Steam 公开页面抓取可见数据。
 
 ## 部署到 GitHub Pages（私有仓库）
 
@@ -102,7 +105,7 @@ git push -u origin main
 
 - `Source` 选择 `GitHub Actions`
 
-### 3) 配置 Actions Secrets（用于构建同步脚本）
+### 3) （可选）配置 Actions Secrets（用于 API / 登录态）
 
 在：`Settings > Secrets and variables > Actions > New repository secret`
 
@@ -110,6 +113,8 @@ git push -u origin main
 - `STEAM_STEAM_ID`（可选）
 - `STEAM_COOKIE_STEAMLOGINSECURE`（可选，fallback）
 - `STEAM_COOKIE_SESSIONID`（可选）
+
+若你只使用公开页面抓取，可以跳过这一步，直接部署。
 
 ### 4) 触发部署
 

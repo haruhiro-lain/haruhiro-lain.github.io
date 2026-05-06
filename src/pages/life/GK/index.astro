@@ -6,24 +6,19 @@ import type { CollectionEntry } from 'astro:content';
 import { getSortedPosts } from '../../../utils/content';
 import FallbackImage from '../../../assets/blog-placeholder-about.jpg';
 import { gkModelSelection } from '../../../data/gkModelSelection';
+import { paintStock } from '../../../data/paintStock';
 
 const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life'>) => post.id.startsWith('gk/'));
 
-// 油漆库存数据
-const paintStock = [
-	{ name: '黑色打底', brand: '田宫', amount: '充足' },
-	{ name: '白色打底', brand: '田宫', amount: '充足' },
-	{ name: '灰色打底', brand: '田宫', amount: '充足' },
-	{ name: '红色', brand: 'Mr.黑色', amount: '3瓶' },
-	{ name: '蓝色', brand: 'Mr.黑色', amount: '2瓶' },
-	{ name: '绿色', brand: 'Mr.黑色', amount: '1瓶' },
-	{ name: '黄色', brand: 'Mr.黑色', amount: '2瓶' },
-	{ name: '肉色', brand: 'Mr.黑色', amount: '充足' },
-	{ name: '金色', brand: 'Mr.黑色', amount: '1瓶' },
-	{ name: '银色', brand: 'Mr.黑色', amount: '3瓶' },
-	{ name: '透明', brand: 'Mr.黑色', amount: '充足' },
-	{ name: '哑光剂', brand: 'Mr.黑色', amount: '充足' },
-];
+const paintStockByUsage = Array.from(
+	paintStock.reduce((groups, item) => {
+		const usage = item.usageCategory ?? '未分类';
+		const products = groups.get(usage) ?? [];
+		products.push({ brand: item.brand, name: item.name });
+		groups.set(usage, products);
+		return groups;
+	}, new Map<string, { brand: string; name: string }[]>()),
+).map(([usage, products]) => ({ usage, products }));
 
 type ModelBacklogItem = {
 	name: string;
@@ -160,17 +155,29 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 			<aside class="sidebar">
 				<section class="card card--sidebar card--stock">
 					<div class="sidebar-head">
-						<h2>油漆库存</h2>
-						<button class="sidebar-toggle" data-target="stock-list" type="button" aria-expanded="false">
-							展开
-						</button>
+						<h2>库存...</h2>
 					</div>
 					<ul class="stock-list" id="stock-list">
-						{paintStock.map((item) => (
-							<li>
-								<span class="paint-name">{item.name}</span>
-								<span class="paint-brand">{item.brand}</span>
-								<strong class="paint-amount">{item.amount}</strong>
+						{paintStockByUsage.map((group, index) => (
+							<li class="stock-usage-group">
+								<div class="stock-usage-row">
+									<span class="paint-usage">{group.usage}</span>
+									<button
+										class="stock-usage-toggle"
+										type="button"
+										data-stock-target={`stock-products-${index}`}
+										aria-expanded="false"
+									>
+										+
+									</button>
+								</div>
+								<ul class="stock-products is-hidden" id={`stock-products-${index}`}>
+									{group.products.map((item) => (
+										<li class="stock-product-item">
+											<span class="paint-name">{`${item.brand}-${item.name}`}</span>
+										</li>
+									))}
+								</ul>
 							</li>
 						))}
 					</ul>
@@ -246,7 +253,7 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 
 			const updateDisplay = () => {
 				const isExpanded = btn.getAttribute('aria-expanded') === 'true';
-				const items = Array.from(list.querySelectorAll<HTMLLIElement>('li'));
+				const items = Array.from(list.querySelectorAll<HTMLLIElement>(':scope > li'));
 
 				if (isModelsList && isExpanded) {
 					const startIndex = (modelPage - 1) * modelPageSize;
@@ -298,9 +305,36 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 		});
 	};
 
-	document.addEventListener('DOMContentLoaded', () => { initSidebarToggles(); });
-	document.addEventListener('astro:page-load', () => { initSidebarToggles(); });
+	const initStockUsageToggles = () => {
+		document.querySelectorAll<HTMLButtonElement>('.stock-usage-toggle').forEach((btn) => {
+			if (btn.dataset.bound === 'true') return;
+			btn.dataset.bound = 'true';
+
+			const targetId = btn.dataset.stockTarget;
+			if (!targetId) return;
+
+			const list = document.getElementById(targetId) as HTMLUListElement | null;
+			if (!list) return;
+
+			btn.addEventListener('click', () => {
+				const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+				btn.setAttribute('aria-expanded', String(!isExpanded));
+				btn.textContent = isExpanded ? '+' : '−';
+				list.classList.toggle('is-hidden', isExpanded);
+			});
+		});
+	};
+
+	document.addEventListener('DOMContentLoaded', () => {
+		initSidebarToggles();
+		initStockUsageToggles();
+	});
+	document.addEventListener('astro:page-load', () => {
+		initSidebarToggles();
+		initStockUsageToggles();
+	});
 	initSidebarToggles();
+	initStockUsageToggles();
 </script>
 
 <style>
@@ -323,7 +357,7 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 		padding-top: 0;
 		padding-bottom: 0;
 		padding-left: var(--home-side-space);
-		padding-right: 0;
+		padding-right: 5vw;
 		border-radius: 0;
 		background:
 			repeating-linear-gradient(
@@ -400,6 +434,12 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 
 	.card--sidebar {
 		align-self: start;
+	}
+
+	.card--stock {
+		width: 100%;
+		box-sizing: border-box;
+		border: 1px solid rgba(var(--gray), 0.35);
 	}
 
 	.sidebar-head {
@@ -488,7 +528,14 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 		color: rgb(var(--gray));
 	}
 
-	.stock-list,
+	.stock-list {
+		list-style: disc;
+		padding-left: 1.15rem;
+		margin: 0;
+		display: grid;
+		gap: 0.35rem;
+	}
+
 	.models-list {
 		list-style: none;
 		padding: 0;
@@ -497,7 +544,6 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 		gap: 0.4rem;
 	}
 
-	.stock-list li,
 	.models-list li {
 		display: flex;
 		align-items: flex-start;
@@ -506,31 +552,71 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 		font-size: 0.85rem;
 	}
 
-	.stock-list li.is-collapsed-hidden,
 	.models-list li.is-collapsed-hidden {
 		display: none;
 	}
 
 
-	.stock-list li {
-		flex-direction: column;
-		gap: 0.2rem;
+	.stock-list > li {
+		display: list-item;
+		padding: 0.35rem 0;
+		font-size: 0.85rem;
 	}
 
+	.stock-usage-row {
+		width: 100%;
+		position: relative;
+		display: flex;
+		align-items: center;
+		padding-right: 1.1rem;
+	}
+
+	.stock-usage-toggle {
+		position: absolute;
+		left: 85%;
+		top: 50%;
+		transform: translate(-50%, -50%);
+		border: none;
+		background: transparent;
+		padding: 0;
+		line-height: 1;
+		font-size: 1rem;
+		color: rgb(var(--gray-dark));
+		cursor: pointer;
+	}
+
+	.stock-usage-toggle:hover {
+		color: var(--accent);
+	}
+
+	.stock-products {
+		list-style: circle;
+		padding: 0 0 0 1.2rem;
+		margin: 0.15rem 0 0;
+		display: grid;
+		gap: 0.1rem;
+	}
+
+	.stock-products li {
+		display: list-item;
+		padding: 0;
+		font-size: 0.85rem;
+	}
+
+	.stock-products.is-hidden {
+		display: none;
+	}
+
+	.paint-usage,
 	.paint-name {
-		font-weight: 600;
+		font-weight: 400;
+		font-size: 0.85rem;
 		color: rgb(var(--black));
 	}
 
-	.paint-brand {
-		font-size: 0.8rem;
-		color: rgb(var(--gray));
-	}
-
-	.paint-amount {
-		font-weight: 700;
-		color: var(--accent);
-		font-size: 0.9rem;
+	.paint-usage {
+		display: inline-block;
+		max-width: 100%;
 	}
 
 	.model-thumb {
@@ -617,7 +703,7 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 	@media (max-width: 900px) {
 		.gk-panel {
 			padding-left: 1rem;
-			padding-right: 0;
+			padding-right: 10vw;
 		}
 
 		.card-grid {
