@@ -21,9 +21,9 @@ export type SteamRecentGamesData = {
 
 export const steamRecentGamesData: SteamRecentGamesData = {
 	profileUrl: "https://steamcommunity.com/profiles/76561199036753865/",
-	fetchedAt: "2026-05-06T04:51:12.769Z",
-	totalRecentTwoWeeksHours: 30.7,
-	totalRecentTwoWeeksText: "30.7 hours",
+	fetchedAt: "2026-05-07T00:02:05.435Z",
+	totalRecentTwoWeeksHours: 29.2,
+	totalRecentTwoWeeksText: "29.2 hours",
 	games: [
 		{
 			name: "Magical Princess",

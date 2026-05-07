@@ -1,0 +1,42 @@
+---
+title: 'Fringe Weaver'
+description: '烂酒罐配方记录：发泡、时尚、强烈与陈化、调和风格的 Fringe Weaver。'
+pubDate: '2026-05-06'
+heroImage: ./assets/2026--05--06_fringe-weaver/10-FringeWeaver.png
+tags: ['VA-11 Hall-A', '调酒', '配方']
+---
+
+# <span style="color:#CD853F; font-weight:bold;">Fringe Weaver</span>
+
+口味：发泡        类型：时尚、强烈        调制方式：陈化、调和
+
+**配料：**
+
+波本威士忌 2盎司        味美思酒 0.25盎司        苹果汁 0.5盎司
+
+苦精 2酹        方糖 1块        苏打水 2盎司
+
+**制作步骤：**
+
+1 将方糖放入玻璃杯底部，加入两酹苦精，然后用勺子压碎（讲究一点的话就用捣棒）。
+
+2 将波本威士忌、味美思酒和苹果汁放入装满冰块的摇壶中。
+
+3 盖好摇壶用力摇和，之后将酒液倒入玻璃杯中。
+
+4 加入2盎司苏打水，用柠檬皮装饰杯口。
+
+```haskell
+record DrinkMenu where
+	constructor MkDrinkMenu
+	spiritIngredients : List String
+	allIngredients    : List String
+
+myFringeWeaverMenu : DrinkMenu
+myFringeWeaverMenu = MkDrinkMenu
+	["波本威士忌"]
+	["波本威士忌", "味美思酒", "苹果汁", "苏打水"]
+
+```
+
+![Fringe Weaver](./assets/2026--05--06_fringe-weaver/10-FringeWeaver.png)
