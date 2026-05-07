@@ -6,7 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
-const syncScriptPaths = [resolve(__dirname, 'sync-hpoi.mjs'), resolve(__dirname, 'sync-steam.mjs')];
+const syncScriptPaths = [
+	resolve(__dirname, 'sync-hpoi.mjs'),
+	resolve(__dirname, 'sync-steam.mjs'),
+	resolve(__dirname, 'sync-github-avatar.mjs'),
+];
 const astroBin =
 	process.platform === 'win32'
 		? resolve(projectRoot, 'node_modules', '.bin', 'astro.cmd')

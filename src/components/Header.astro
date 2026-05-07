@@ -94,7 +94,7 @@ import HeaderLink from './HeaderLink.astro';
         border: none;
         border-radius: 14px;
         box-shadow: 0 6px 18px rgba(0, 0, 0, 25%);
-        padding: 0.25em 0.9em;
+        padding: 0.25em 1.4%;
         z-index: 1000;
         box-sizing: border-box;
         gap: 1rem;
@@ -102,12 +102,12 @@ import HeaderLink from './HeaderLink.astro';
     }
     h2 {
         position: absolute;
-        left: 0.2em;
+        left: 0.3%;
         top: 50%;
         transform: translateY(-50%);
     }
     nav a {
-        padding: 0.35em 1.50em;
+        padding: 0.35em clamp(0.4rem, 1.8vw, 1.50em);
         font-size: 0.92rem;
         color: rgb(var(--black));
         border-bottom: 4px solid transparent;
@@ -134,7 +134,7 @@ import HeaderLink from './HeaderLink.astro';
         position: relative;
     }
     .nav-trigger {
-        padding: 0.35em 1.50em;
+        padding: 0.35em clamp(0.4rem, 1.8vw, 1.50em);
         font-size: 0.92rem;
         line-height: 1.4;
         color: rgb(var(--black));

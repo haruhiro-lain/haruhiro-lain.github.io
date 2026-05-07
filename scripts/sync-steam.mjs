@@ -123,6 +123,17 @@ const buildFileContent = (payload) => {
 	return `export type SteamRecentGame = {\n\tname: string;\n\tappId: number | null;\n\tappUrl: string;\n\tcoverImageUrl: string;\n\tcoverImageLocalPath: string;\n\tlastTwoWeeksHours: number | null;\n\tlastTwoWeeksText: string;\n\ttotalHours: number | null;\n\ttotalHoursText: string;\n\tlastPlayedText: string;\n};\n\nexport type SteamRecentGamesData = {\n\tprofileUrl: string;\n\tfetchedAt: string;\n\ttotalRecentTwoWeeksHours: number | null;\n\ttotalRecentTwoWeeksText: string;\n\tgames: SteamRecentGame[];\n};\n\nexport const steamRecentGamesData: SteamRecentGamesData = {\n\tprofileUrl: ${JSON.stringify(payload.profileUrl)},\n\tfetchedAt: ${JSON.stringify(payload.fetchedAt)},\n\ttotalRecentTwoWeeksHours: ${payload.totalRecentTwoWeeksHours === null ? 'null' : payload.totalRecentTwoWeeksHours},\n\ttotalRecentTwoWeeksText: ${JSON.stringify(payload.totalRecentTwoWeeksText)},\n\tgames: [\n${gameRows}\t],\n};\n`;
 };
 
+const parseFetchedAtFromContent = (source) => {
+	const match = source.match(/\bfetchedAt:\s*("(?:\\.|[^"\\])*")\s*,/);
+	if (!match) return '';
+
+	try {
+		return JSON.parse(match[1]);
+	} catch {
+		return '';
+	}
+};
+
 const requestHtml = (url, extraHeaders = {}) =>
 	new Promise((resolvePromise, rejectPromise) => {
 		const req = https.get(
@@ -438,7 +449,14 @@ const main = async () => {
 		};
 
 		const existing = readFileSync(DATA_PATH, 'utf8');
-		const next = buildFileContent(payload);
+		const existingFetchedAt = parseFetchedAtFromContent(existing);
+		const nextWithExistingFetchedAt = existingFetchedAt
+			? buildFileContent({
+					...payload,
+					fetchedAt: existingFetchedAt,
+				})
+			: '';
+		const next = nextWithExistingFetchedAt === existing ? nextWithExistingFetchedAt : buildFileContent(payload);
 		if (existing !== next) {
 			writeFileSync(DATA_PATH, next, 'utf8');
 			console.log(`[sync-steam] 已更新: ${DATA_PATH}`);

@@ -40,7 +40,8 @@ const steamRecentGames = steamRecentGamesData.games;
 const steamTotalRecentTwoWeeksText = steamRecentGamesData.totalRecentTwoWeeksText || '最近两周时长暂不可用';
 const steamFetchedAt = steamRecentGamesData.fetchedAt ? new Date(steamRecentGamesData.fetchedAt) : null;
 const githubProfileUrl = 'https://github.com/haruhiro-lain';
-const githubAvatarUrl = `${githubProfileUrl}.png?size=200`;
+const githubAvatarRemoteUrl = `${githubProfileUrl}.png?size=200`;
+const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 ---
 
 <PageShell title="首页" contentWidth="900px">
@@ -60,7 +61,7 @@ const githubAvatarUrl = `${githubProfileUrl}.png?size=200`;
 					class="home-banner-avatar-link"
 					aria-label="打开 GitHub 主页"
 				>
-					<img src={githubAvatarUrl} alt="GitHub 头像" class="home-banner-avatar" loading="lazy" decoding="async" />
+					<img src={githubAvatarCachedUrl} alt="GitHub 头像" class="home-banner-avatar" loading="lazy" decoding="async" data-fallback-src={githubAvatarRemoteUrl} />
 				</a>
 				<div class="home-banner-text-content">
 					<HomeBannerContent />
@@ -243,6 +244,23 @@ const githubAvatarUrl = `${githubProfileUrl}.png?size=200`;
 			attributes: true,
 			attributeFilter: ['data-theme'],
 		});
+	}
+
+	const avatarImage = document.querySelector('.home-banner-avatar');
+	if (avatarImage instanceof HTMLImageElement) {
+		const fallbackSrc = avatarImage.dataset.fallbackSrc;
+		if (fallbackSrc) {
+			avatarImage.addEventListener(
+				'error',
+				() => {
+					if (avatarImage.src === fallbackSrc) {
+						return;
+					}
+					avatarImage.src = fallbackSrc;
+				},
+				{ once: true },
+			);
+		}
 	}
 
 	const initSteamBacklogToggles = () => {
