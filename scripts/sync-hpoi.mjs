@@ -9,7 +9,7 @@
  *   3. 保留 selectedLinks / selectedNames / maxVisible 等手动配置不变
  */
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, writeSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,6 +17,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = resolve(__dirname, '../src/data/gkModelSelection.ts');
 const HPOI_URL = 'https://www.hpoi.net/user/113242/hobby?favState=buy&category=-1';
 const DETAIL_FETCH_CONCURRENCY = 5;
+
+const logInfo = (message) => {
+	writeSync(1, `${message}\n`, undefined, 'utf-8');
+};
+
+const logError = (message) => {
+	writeSync(2, `${message}\n`, undefined, 'utf-8');
+};
 
 const decodeHtml = (text) =>
 	text
@@ -74,18 +82,27 @@ const parseExistingModels = (source) => {
 	if (!blockMatch) return [];
 
 	const items = [];
-	const itemPattern = /\{\s*id:\s*(\d+),\s*name:\s*("(?:\\.|[^"\\])*"),\s*link:\s*("(?:\\.|[^"\\])*"),\s*image:\s*("(?:\\.|[^"\\])*")(?:,\s*maker:\s*("(?:\\.|[^"\\])*"))?(?:,\s*series:\s*("(?:\\.|[^"\\])*"))?(?:,\s*tags:\s*(\[(?:\\.|[^\[\]])*\]))?\s*\}/g;
+	const lines = blockMatch[1].split('\n').map((line) => line.trim()).filter(Boolean);
 
-	for (const match of blockMatch[1].matchAll(itemPattern)) {
-		const tagsStr = match[8] ? JSON.parse(match[8]) : [];
+	for (const line of lines) {
+		if (!line.startsWith('{ id:')) continue;
+
+		const baseMatch = line.match(
+			/^\{\s*id:\s*(\d+),\s*name:\s*("(?:\\.|[^"\\])*"),\s*link:\s*("(?:\\.|[^"\\])*"),\s*image:\s*("(?:\\.|[^"\\])*"),\s*maker:\s*("(?:\\.|[^"\\])*"),\s*series:\s*("(?:\\.|[^"\\])*")/,
+		);
+		if (!baseMatch) continue;
+
+		const tagsMatch = line.match(/,\s*tags:\s*(\[.*\])\s*\}\s*,?$/);
+		const tags = tagsMatch ? JSON.parse(tagsMatch[1]) : [];
+
 		items.push({
-			id: Number(match[1]),
-			name: JSON.parse(match[2]),
-			link: JSON.parse(match[3]),
-			image: JSON.parse(match[4]),
-			maker: match[5] ? JSON.parse(match[5]) : '',
-			series: match[6] ? JSON.parse(match[6]) : '',
-			tags: tagsStr,
+			id: Number(baseMatch[1]),
+			name: JSON.parse(baseMatch[2]),
+			link: JSON.parse(baseMatch[3]),
+			image: JSON.parse(baseMatch[4]),
+			maker: JSON.parse(baseMatch[5]),
+			series: JSON.parse(baseMatch[6]),
+			tags,
 		});
 	}
 
@@ -151,7 +168,7 @@ const extractItemsFromHtml = (html, seenLinks, items) => {
 
 const fetchPageHtml = async (page) => {
 	const pageUrl = page === 1 ? HPOI_URL : `${HPOI_URL}&page=${page}`;
-	console.log(`[sync-hpoi] 抓取第 ${page} 页: ${pageUrl}`);
+	logInfo(`[sync-hpoi] 抓取第 ${page} 页: ${pageUrl}`);
 
 	const response = await fetch(pageUrl, {
 		headers: {
@@ -177,11 +194,13 @@ const fetchAll = async () => {
 		if (pageCount === 0) break;
 	}
 
-	console.log(`[sync-hpoi] 共获取到 ${items.length} 条条目`);
+	logInfo(`[sync-hpoi] 共获取到 ${items.length} 条条目`);
 	return items;
 };
 
 const stripHtml = (text) => decodeHtml(text.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ')).trim();
+
+const isPriceFieldLabel = (label) => /价格|價格|定价|定價|售价|售價|価格|價額|价位/.test(label);
 
 const fetchItemMeta = async (item) => {
 	try {
@@ -205,12 +224,13 @@ const fetchItemMeta = async (item) => {
 			const value = stripHtml(match[2] ?? '');
 			if (!value) continue;
 			
-			// 收集所有属性值
-			allTags.push(value);
+			// 收集属性值（过滤价格字段，避免汇率波动导致无意义更新）
+			if (!isPriceFieldLabel(label)) {
+				allTags.push(value);
+			}
 			
 			if (!maker && label === '制作') maker = value;
 			if (!series && label === '系列') series = value;
-			if (maker && series) break;
 		}
 
 		return { maker, series, tags: allTags };
@@ -255,7 +275,7 @@ const enrichItemsMeta = async (items, existingItems) => {
 
 	if (needFetchIndices.length === 0) return preparedItems;
 
-	console.log(`[sync-hpoi] 补充详情字段（制作/系列/属性），共 ${needFetchIndices.length} 条...`);
+	logInfo(`[sync-hpoi] 补充详情字段（制作/系列/属性），共 ${needFetchIndices.length} 条...`);
 	const metaList = await runWithConcurrency(
 		needFetchIndices,
 		DETAIL_FETCH_CONCURRENCY,
@@ -324,11 +344,11 @@ const normalizeIds = (items) => {
 	const needsNormalization = items.some((item, index) => item.id !== n - index);
 
 	if (!needsNormalization) {
-		console.log('[sync-hpoi] allModels 的 id 序列正确无需修正。');
+		logInfo('[sync-hpoi] allModels 的 id 序列正确无需修正。');
 		return items;
 	}
 
-	console.log('[sync-hpoi] 检测到 id 序列不连续，进行修正...');
+	logInfo('[sync-hpoi] 检测到 id 序列不连续，进行修正...');
 	return items.map((item, index) => ({
 		...item,
 		id: n - index,
@@ -356,7 +376,7 @@ const updateSelectedNamesByRules = (source, items) => {
 
 	const merged = [...currentSelectedNames, ...autoSelectedNames];
 	const serialized = merged.map((name) => JSON.stringify(name)).join(', ');
-	console.log(`[sync-hpoi] 根据 autoSelectRules 或 GK 标签自动追加 selectedNames ${autoSelectedNames.length} 项。`);
+	logInfo(`[sync-hpoi] 根据 autoSelectRules 或 GK 标签自动追加 selectedNames ${autoSelectedNames.length} 项。`);
 
 	return source.replace(/selectedNames\s*:\s*\[[\s\S]*?\]\s*,/, `selectedNames: [${serialized}],`);
 };
@@ -370,20 +390,26 @@ const run = async () => {
 	const normalizedItems = normalizeIds(items);
 	const withModels = rewriteAllModels(source, normalizedItems);
 	const updated = updateSelectedNamesByRules(withModels, newItems);
-	writeFileSync(CONFIG_PATH, updated, 'utf-8');
-	console.log(`[sync-hpoi] 已更新: ${CONFIG_PATH}`);
-	console.log('[sync-hpoi] 可在 selectedLinks / selectedNames 中手动指定，或通过 autoSelectRules 自动追加。');
 
-	if (newItems.length === 0) {
-		console.log('[sync-hpoi] 无新增内容。');
+	if (updated === source) {
+		logInfo('[sync-hpoi] 数据无变化。');
 		return;
 	}
 
-	console.log(`[sync-hpoi] 新增条目 ${newItems.length} 条：`);
-	newItems.forEach((item) => console.log(`  ${String(item.id).padStart(2, ' ')}. ${item.link}  ${item.name}`));
+	writeFileSync(CONFIG_PATH, updated, 'utf-8');
+	logInfo(`[sync-hpoi] 已更新: ${CONFIG_PATH}`);
+	logInfo('[sync-hpoi] 可在 selectedLinks / selectedNames 中手动指定，或通过 autoSelectRules 自动追加。');
+
+	if (newItems.length === 0) {
+		logInfo('[sync-hpoi] 无新增内容。');
+		return;
+	}
+
+	logInfo(`[sync-hpoi] 新增条目 ${newItems.length} 条：`);
+	newItems.forEach((item) => logInfo(`  ${String(item.id).padStart(2, ' ')}. ${item.link}  ${item.name}`));
 };
 
 run().catch((err) => {
-	console.error('[sync-hpoi] 失败:', err.message);
+	logError(`[sync-hpoi] 失败: ${err.message}`);
 	process.exit(1);
 });

@@ -430,13 +430,13 @@ const fetchSteamProfile = async () => {
 	}
 
 	throw new Error(
-		`未能从 Steam 公开页面获取可用数据。games: ${gamesPageResult.lastErrorMessage || 'unknown'}；profile: ${gamesResult.lastErrorMessage || 'unknown'}`,
+		`Unable to fetch usable data from public Steam pages. games: ${gamesPageResult.lastErrorMessage || 'unknown'}; profile: ${gamesResult.lastErrorMessage || 'unknown'}`,
 	);
 };
 
 const main = async () => {
 	try {
-		console.log('[sync-steam] 开始抓取 Steam 最近游玩数据...');
+		console.log('[sync-steam] Starting Steam recent games sync...');
 		const { sourceType, sourceUrl, twoWeeks, games } = await fetchSteamProfile();
 		await cacheSteamGameImages(games);
 
@@ -459,17 +459,17 @@ const main = async () => {
 		const next = nextWithExistingFetchedAt === existing ? nextWithExistingFetchedAt : buildFileContent(payload);
 		if (existing !== next) {
 			writeFileSync(DATA_PATH, next, 'utf8');
-			console.log(`[sync-steam] 已更新: ${DATA_PATH}`);
+			console.log(`[sync-steam] Updated: ${DATA_PATH}`);
 		} else {
-			console.log('[sync-steam] 数据无变化。');
+			console.log('[sync-steam] No data changes.');
 		}
 
-		console.log(`[sync-steam] 数据来源类型: ${sourceType}`);
-		console.log(`[sync-steam] 数据来源: ${sourceUrl}`);
-		console.log(`[sync-steam] 最近两周总时长: ${payload.totalRecentTwoWeeksText || '未知'}`);
-		console.log(`[sync-steam] 最近游玩条目: ${payload.games.length}`);
+		console.log(`[sync-steam] Source type: ${sourceType}`);
+		console.log(`[sync-steam] Source URL: ${sourceUrl}`);
+		console.log(`[sync-steam] Last two weeks total: ${payload.totalRecentTwoWeeksText || 'unknown'}`);
+		console.log(`[sync-steam] Recent games count: ${payload.games.length}`);
 	} catch (error) {
-		console.warn(`[sync-steam] 同步失败，保留现有数据。${error instanceof Error ? ` ${error.message}` : ''}`);
+		console.warn(`[sync-steam] Sync failed; keeping existing local data.${error instanceof Error ? ` ${error.message}` : ''}`);
 	}
 };
 

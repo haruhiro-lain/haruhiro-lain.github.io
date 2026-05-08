@@ -36,15 +36,15 @@ const main = async () => {
 		if (existsSync(OUTPUT_PATH)) {
 			const currentBuffer = readFileSync(OUTPUT_PATH);
 			if (currentBuffer.equals(nextBuffer)) {
-				console.log('[sync-github-avatar] 头像缓存无变化。');
+				console.log('[sync-github-avatar] Avatar cache is unchanged.');
 				return;
 			}
 		}
 
 		writeFileSync(OUTPUT_PATH, nextBuffer);
-		console.log(`[sync-github-avatar] 已更新: ${OUTPUT_PATH}`);
+		console.log(`[sync-github-avatar] Updated: ${OUTPUT_PATH}`);
 	} catch (error) {
-		console.warn(`[sync-github-avatar] 同步失败，保留现有头像缓存。${error instanceof Error ? ` ${error.message}` : ''}`);
+		console.warn(`[sync-github-avatar] Sync failed; keeping existing avatar cache.${error instanceof Error ? ` ${error.message}` : ''}`);
 	}
 };
 
