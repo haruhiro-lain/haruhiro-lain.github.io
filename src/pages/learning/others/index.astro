@@ -2,6 +2,6 @@
 import SectionList from '../../../components/SectionList.astro';
 import { getSectionPosts } from '../../../utils/content';
 
-const posts = await getSectionPosts('learning', 'blog');
+const posts = await getSectionPosts('learning', 'others');
 ---
 <SectionList title="杂项" posts={posts} collection="learning" />
