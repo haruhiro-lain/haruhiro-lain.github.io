@@ -1,0 +1,7 @@
+---
+import SectionList from '../../../components/SectionList.astro';
+import { getSortedPosts } from '../../../utils/content';
+
+const posts = (await getSortedPosts('learning')).filter((post) => post.id.startsWith('algorithms/'));
+---
+<SectionList title="题解" posts={posts} collection="learning" />

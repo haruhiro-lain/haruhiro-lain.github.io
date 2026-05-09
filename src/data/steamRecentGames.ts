@@ -21,9 +21,9 @@ export type SteamRecentGamesData = {
 
 export const steamRecentGamesData: SteamRecentGamesData = {
 	profileUrl: "https://steamcommunity.com/profiles/76561199036753865/",
-	fetchedAt: "2026-05-08T05:46:20.926Z",
-	totalRecentTwoWeeksHours: 29.8,
-	totalRecentTwoWeeksText: "29.8 hours",
+	fetchedAt: "2026-05-08T23:28:09.790Z",
+	totalRecentTwoWeeksHours: 26.8,
+	totalRecentTwoWeeksText: "26.8 hours",
 	games: [
 		{
 			name: "Wallpaper Engine",

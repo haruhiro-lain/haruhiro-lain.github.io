@@ -8,7 +8,7 @@
 
 - Astro 静态生成
 - Markdown / MDX 内容驱动
-- 多栏目内容集合（blog / projects / interview / algorithms / life）
+- 多栏目内容集合（learning / life）
 - RSS 与 Sitemap
 
 ## 目录结构
@@ -143,3 +143,4 @@ git push -u origin main
 - `src/content` 只放内容文件（`md/mdx`）。
 - 页面路由统一放在 `src/pages`。
 - 改动后建议执行一次 `npm run build` 验证。
+- 内容 schema 以 `src/content.config.ts` 为准。

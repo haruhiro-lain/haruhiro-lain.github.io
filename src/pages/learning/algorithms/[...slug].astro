@@ -4,10 +4,10 @@ import CollectionPostPage from '../../../components/CollectionPostPage.astro';
 import { getSectionStaticPaths } from '../../../utils/content';
 
 export async function getStaticPaths() {
-	return getSectionStaticPaths('life', 'weekly');
+	return getSectionStaticPaths('learning', 'algorithms');
 }
 
-type Props = CollectionEntry<'life'>;
+type Props = CollectionEntry<'learning'>;
 
 const post = Astro.props as Props;
 ---

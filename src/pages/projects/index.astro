@@ -1,8 +1,0 @@
----
-import SectionList from '../../components/SectionList.astro';
-import { getSortedPosts } from '../../utils/content';
-
-const posts = await getSortedPosts('projects');
----
-
-<SectionList title="项目" posts={posts} collection="projects" />

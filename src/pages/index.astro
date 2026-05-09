@@ -1,13 +1,16 @@
 ---
 import PageShell from '../layouts/PageShell.astro';
 import FormattedDate from '../components/FormattedDate.astro';
-import { getSortedPosts } from '../utils/content';
+import { getRecentPostsWithCanonical, getRecentSectionPostsWithCanonical } from '../utils/content';
 import HomeBannerContent from '../data/home.md';
 import RecentScheduleContent from '../data/recentSchedule.md';
 import { steamRecentGamesData } from '../data/steamRecentGames';
 
-const recentBlogPosts = (await getSortedPosts('blog')).slice(0, 4);
-const recentLifePosts = (await getSortedPosts('life')).slice(0, 2);
+const recentBlogPosts = await getRecentSectionPostsWithCanonical('learning', 'blog', 4);
+const recentLifePosts = await getRecentPostsWithCanonical('life', 2, {
+	gk: 'GK',
+	'va-11_hall-a': 'VA-11_Hall-A',
+});
 const lightBackgroundImageModules = import.meta.glob('../assets/background/light/*.{png,jpg,jpeg,webp,avif,gif,svg}', {
 	eager: true,
 	import: 'default',
@@ -86,12 +89,12 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 	<section class="home-section">
 		<div class="home-section__head">
 			<h2>近期博文</h2>
-			<a href="/blog">查看更多</a>
+			<a href="/learning">查看更多</a>
 		</div>
 		<ul class="home-cards">
-			{recentBlogPosts.map((post) => (
+			{recentBlogPosts.map(({ post, canonicalId }) => (
 				<li>
-					<a href={`/blog/${post.id}/`} class="home-card">
+					<a href={`/learning/${canonicalId}/`} class="home-card">
 						{post.data.heroImage && (
 							<div class="home-card__cover">
 								<img src={(post.data.heroImage as any)?.src ?? post.data.heroImage} alt="" loading="lazy" decoding="async" />
@@ -121,9 +124,9 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 			<a href="/life">查看更多</a>
 		</div>
 		<ul class="home-cards">
-			{recentLifePosts.map((post) => (
+			{recentLifePosts.map(({ post, canonicalId }) => (
 				<li>
-					<a href={`/life/${post.id}/`} class="home-card">
+					<a href={`/life/${canonicalId}/`} class="home-card">
 						{post.data.heroImage && (
 							<div class="home-card__cover">
 								<img src={(post.data.heroImage as any)?.src ?? post.data.heroImage} alt="" loading="lazy" decoding="async" />
@@ -204,20 +207,62 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 		const lightImages = parseImageList(homeBannerSlot.dataset.lightImages);
 		const darkImages = parseImageList(homeBannerSlot.dataset.darkImages);
 
-		const pickRandomImage = (images) => {
+		// 存储已展示图片的 localStorage key
+		const getStorageKey = (theme) => `home-banner-displayed-${theme}`;
+
+		const getNextImage = (images) => {
 			if (!Array.isArray(images) || images.length === 0) {
 				return '';
 			}
-			const randomIndex = Math.floor(Math.random() * images.length);
-			return images[randomIndex] || '';
+
+			const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+			const storageKey = getStorageKey(theme);
+			
+			// 获取已展示过的图片列表
+			let displayedImages = [];
+			try {
+				const stored = localStorage.getItem(storageKey);
+				displayedImages = stored ? JSON.parse(stored) : [];
+			} catch {
+				displayedImages = [];
+			}
+
+			// 如果所有图片都已展示或列表为空，重置
+			if (displayedImages.length >= images.length) {
+				displayedImages = [];
+				localStorage.setItem(storageKey, JSON.stringify(displayedImages));
+			}
+
+			// 从未展示过的图片中随机选择
+			const availableImages = images.filter((img) => !displayedImages.includes(img));
+			if (availableImages.length === 0) {
+				// 备选方案：所有都展示过，重置并从全部中选
+				displayedImages = [];
+				localStorage.setItem(storageKey, JSON.stringify(displayedImages));
+				return pickRandomFromArray(images);
+			}
+
+			const selectedImage = pickRandomFromArray(availableImages);
+			displayedImages.push(selectedImage);
+			localStorage.setItem(storageKey, JSON.stringify(displayedImages));
+
+			return selectedImage;
+		};
+
+		const pickRandomFromArray = (arr) => {
+			if (!Array.isArray(arr) || arr.length === 0) {
+				return '';
+			}
+			const randomIndex = Math.floor(Math.random() * arr.length);
+			return arr[randomIndex] || '';
 		};
 
 		const applyBannerImage = () => {
 			const activeTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 			const selectedImage =
 				activeTheme === 'dark'
-					? pickRandomImage(darkImages) || pickRandomImage(lightImages)
-					: pickRandomImage(lightImages) || pickRandomImage(darkImages);
+					? getNextImage(darkImages) || getNextImage(lightImages)
+					: getNextImage(lightImages) || getNextImage(darkImages);
 
 			if (selectedImage) {
 				homeBannerSlot.style.backgroundImage = `url("${selectedImage}")`;
@@ -325,6 +370,10 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 		padding-top: 0;
 	}
 
+	:global(body) {
+		overflow-x: clip;
+	}
+
 	.home-banner-slot {
 		width: 100vw;
 		margin-left: calc(50% - 50vw);
@@ -339,6 +388,7 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 		position: relative;
 		display: grid;
 		place-items: center;
+		overflow: hidden;
 	}
 
 	.home-banner-slot--has-image {

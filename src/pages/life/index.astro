@@ -1,0 +1,187 @@
+---
+import FormattedDate from '../../components/FormattedDate.astro';
+import PageShell from '../../layouts/PageShell.astro';
+import { getGroupedPostsByFirstSegment } from '../../utils/content';
+
+// 定义分类中文名称和排序
+const categoryLabels: Record<string, string> = {
+	gk: 'GK',
+	'va-11_hall-a': 'VA-11 Hall-A',
+	weekly: '每周总结',
+};
+
+const categoryOrder = ['weekly', 'va-11_hall-a', 'gk'];
+const groupedCategories = await getGroupedPostsByFirstSegment('life', categoryOrder, {
+	gk: 'GK',
+	'va-11_hall-a': 'VA-11_Hall-A',
+	weekly: 'weekly',
+});
+---
+
+<PageShell title="近期动态">
+	<section>
+		<h1 class="page-title">近期动态</h1>
+		
+		{groupedCategories.map(({ section, routeSegment, posts }) => {
+			const category = section;
+			const categoryPosts = posts;
+			const hasMore = categoryPosts.length > 6;
+			return (
+			<div class="category-section">
+				<h2 class="category-title">
+					<a href={`/life/${routeSegment}/`}>{categoryLabels[category] || category}</a>
+				</h2>
+				<ul class="post-grid">
+					{categoryPosts.slice(0, 6).map(({ post, canonicalId }) => {
+						return (
+							<li>
+								<a href={`/life/${canonicalId}/`} class="post-card">
+									{post.data.heroImage && (
+										<div class="post-card__cover">
+											<img src={(post.data.heroImage as any)?.src ?? post.data.heroImage} alt="" loading="lazy" decoding="async" />
+										</div>
+									)}
+									<div class="post-card__body">
+										<h3 class="post-card__title">{post.data.title}</h3>
+										{post.data.description && <p class="post-card__desc">{post.data.description}</p>}
+										<time class="post-card__date">
+											<FormattedDate date={post.data.pubDate} />
+										</time>
+									</div>
+								</a>
+							</li>
+						);
+					})}
+				</ul>
+				{categoryPosts.length === 0 && <p class="empty-indicator">暂无内容</p>}
+				{hasMore && <a class="more-indicator" href={`/life/${routeSegment}/`}>...</a>}
+			</div>
+		);
+		})}
+	</section>
+</PageShell>
+
+<style>
+	.page-title {
+		margin-bottom: 1.5rem;
+	}
+
+	.category-section {
+		margin-bottom: 3rem;
+	}
+
+	.category-title {
+		font-size: 1.5rem;
+		font-weight: 700;
+		margin-bottom: 1.5rem;
+		padding-bottom: 0.5rem;
+		border-bottom: 2px solid var(--border-color, #e5e7eb);
+	}
+
+	.category-title a {
+		text-decoration: none;
+		color: inherit;
+		transition: color 0.2s;
+		cursor: pointer;
+	}
+
+	.category-title a:hover {
+		color: var(--accent-color, #0066cc);
+	}
+
+	.more-indicator {
+		display: inline-block;
+		font-size: 1.5rem;
+		color: var(--date-color, #999);
+		padding: 1rem 0 0;
+		letter-spacing: 0.3em;
+		text-decoration: none;
+	}
+
+	.more-indicator:hover {
+		color: var(--accent-color, #0066cc);
+	}
+
+	.empty-indicator {
+		margin: 0.75rem 0 0;
+		font-size: 0.875rem;
+		color: var(--date-color, #999);
+	}
+
+	.post-grid {
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 1.5rem;
+	}
+
+	.post-card {
+		display: flex;
+		flex-direction: column;
+		border-radius: 0.5rem;
+		border: 1px solid var(--border-color, #e5e7eb);
+		overflow: hidden;
+		transition: all 0.2s;
+		text-decoration: none;
+		color: inherit;
+		height: 100%;
+	}
+
+	.post-card:hover {
+		border-color: var(--accent-color, #0066cc);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+
+	.post-card__cover {
+		width: 100%;
+		height: 160px;
+		overflow: hidden;
+		background-color: var(--bg-gray, #f3f4f6);
+	}
+
+	.post-card__cover img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.2s;
+	}
+
+	.post-card:hover .post-card__cover img {
+		transform: scale(1.05);
+	}
+
+	.post-card__body {
+		padding: 1rem;
+		display: flex;
+		flex-direction: column;
+		flex-grow: 1;
+	}
+
+	.post-card__title {
+		margin: 0 0 0.5rem 0;
+		font-size: 1rem;
+		font-weight: 600;
+		line-height: 1.4;
+	}
+
+	.post-card__desc {
+		margin: 0 0 0.75rem 0;
+		font-size: 0.875rem;
+		color: var(--desc-color, #666);
+		line-height: 1.4;
+		flex-grow: 1;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+
+	.post-card__date {
+		display: block;
+		font-size: 0.75rem;
+		color: var(--date-color, #999);
+		margin-top: auto;
+	}
+</style>
