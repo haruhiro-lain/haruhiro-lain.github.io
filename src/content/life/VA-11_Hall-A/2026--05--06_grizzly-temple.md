@@ -1,14 +1,13 @@
 ---
 title: 'Grizzly Temple'
-description: '烂酒罐配方记录：苦味、宣传、清淡与调和风格的 Grizzly Temple。'
+description: '苦味、宣传、清淡与调和风格'
 pubDate: '2026-05-06'
 heroImage: ./assets/2026--05--06_grizzly-temple/12-GrizzlyTemple.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['苦味', '宣传', '清淡']
 ---
 
 # <span style="color:#66CDAA; font-weight:bold;">Grizzly Temple</span>
 
-口味：苦味        类型：宣传、清淡        调制方式：调和
 
 **配料：**
 

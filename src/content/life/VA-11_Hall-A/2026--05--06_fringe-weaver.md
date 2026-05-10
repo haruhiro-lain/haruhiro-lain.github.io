@@ -1,14 +1,13 @@
 ---
 title: 'Fringe Weaver'
-description: '烂酒罐配方记录：发泡、时尚、强烈与陈化、调和风格的 Fringe Weaver。'
+description: '发泡、时尚、强烈与陈化、调和风格'
 pubDate: '2026-05-06'
 heroImage: ./assets/2026--05--06_fringe-weaver/10-FringeWeaver.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['发泡', '时尚', '强烈']
 ---
 
 # <span style="color:#CD853F; font-weight:bold;">Fringe Weaver</span>
 
-口味：发泡        类型：时尚、强烈        调制方式：陈化、调和
 
 **配料：**
 

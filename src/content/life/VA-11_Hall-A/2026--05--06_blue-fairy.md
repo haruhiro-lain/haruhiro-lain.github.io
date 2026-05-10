@@ -1,14 +1,13 @@
 ---
 title: 'Blue Fairy'
-description: '烂酒罐配方记录：甜味、女性化、温和与陈化、调和风格的 Blue Fairy。'
+description: '甜味、女性化、温和与陈化、调和风格'
 pubDate: '2026-05-06'
 heroImage: ./assets/2026--05--06_blue-fairy/5-BlueFairy.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['甜味', '女性化', '温和']
 ---
 
 # <span style="color:#87CEFA">Blue Fairy</span>
 
-口味：甜味        类型：女性化、温和        调制方式：陈化、调和
 
 **配料：**
 

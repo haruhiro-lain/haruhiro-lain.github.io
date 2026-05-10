@@ -1,14 +1,13 @@
 ---
 title: 'Marsblast'
-description: '烂酒罐配方记录：辛辣、男性化、强烈与调和风格的 Marsblast。'
+description: '辛辣、男性化、强烈与调和风格'
 pubDate: '2026-05-06'
 heroImage: ./assets/2026--05--06_marsblast/14-Marsblast.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['辛辣', '男性化', '强烈']
 ---
 
 # <span style="color:#FFC107; font-weight:bold;">Marsblast</span>
 
-口味：辛辣        类型：男性化、强烈        调制方式：调和
 
 **配料：**
 

@@ -1,14 +1,13 @@
 ---
 title: 'Sugar Rush'
-description: '烂酒罐配方记录：甜味、女性化与愉悦风格的 Sugar Rush。'
+description: '甜味、女性化与愉悦风格'
 pubDate: '2026-04-20'
 heroImage: ../../../assets/VA-11_Hall-A/KarmotrineDream/21-SugerRush.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['甜味', '女性化', '愉悦']
 ---
 
 # <span style="color:#E75480">Sugar Rush</span>
 
-口味：甜味        类型：女性化、愉悦        调制方式：调和
 
 **配料：**
 

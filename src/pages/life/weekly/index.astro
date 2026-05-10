@@ -20,6 +20,13 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 							<a href={`/life/weekly/${post.id.slice('weekly/'.length)}/`}>
 								<h3>{post.data.title}</h3>
 								<p>{post.data.description}</p>
+								{post.data.tags.length > 0 && (
+									<ul class="post-list-tags" aria-label="文章标签">
+										{post.data.tags.map((tag: string) => (
+											<li>#{tag}</li>
+										))}
+									</ul>
+								)}
 							</a>
 						</li>
 					))}
@@ -55,5 +62,23 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 	.post-list p {
 		margin: 0.5rem 0 0;
 		color: rgb(var(--gray));
+	}
+
+	.post-list-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		list-style: none;
+		margin: 0.5rem 0 0;
+		padding: 0;
+	}
+
+	.post-list-tags li {
+		font-size: 0.76rem;
+		line-height: 1;
+		color: rgb(var(--gray));
+		border: 1px solid var(--overlay-border);
+		border-radius: 999px;
+		padding: 0.2rem 0.45rem;
 	}
 </style>

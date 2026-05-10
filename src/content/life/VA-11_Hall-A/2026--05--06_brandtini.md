@@ -1,14 +1,13 @@
 ---
 title: 'Brandtini'
-description: '烂酒罐配方记录：甜味、时尚、惬意与陈化、调和风格的 Brandtini。'
+description: '甜味、时尚、惬意与陈化、调和风格'
 pubDate: '2026-05-06'
 heroImage: ./assets/2026--05--06_brandtini/6-Brandtini.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['甜味', '时尚', '惬意']
 ---
 
 # <span style="color:#DC143C; font-weight:bold;">Brandtini</span>
 
-口味：甜味        类型：时尚、惬意        调制方式：陈化、调和
 
 **配料：**
 

@@ -1,14 +1,13 @@
 ---
 title: 'Moonblast'
-description: '烂酒罐配方记录：甜味、女性化、惬意与加冰、调和风格的 Moonblast。'
+description: '甜味、女性化、惬意与加冰、调和风格'
 pubDate: '2026-05-06'
 heroImage: ./assets/2026--05--06_moonblast/16-Marblast.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['甜味', '女性化', '惬意']
 ---
 
 # <span style="color:#E6678A; font-weight:bold;">Moonblast</span>
 
-口味：甜味        类型：女性化、惬意        调制方式：加冰、调和
 
 **配料：**
 

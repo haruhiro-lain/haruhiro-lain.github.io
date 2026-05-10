@@ -1,14 +1,13 @@
 ---
 title: 'Piledriver'
-description: '烂酒罐配方记录：苦味、男性化、火辣与调和风格的 Piledriver。'
+description: '苦味、男性化、火辣与调和风格'
 pubDate: '2026-05-06'
 heroImage: ./assets/2026--05--06_piledriver/19-Piledrive.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['苦味', '男性化', '火辣']
 ---
 
 # <span style="color:#FF8C00; font-weight:bold;">Piledriver</span>
 
-口味：苦味        类型：男性化、火辣        调制方式：调和
 
 **配料：**
 

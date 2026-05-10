@@ -35,6 +35,8 @@ const contentImageModules = import.meta.glob('../content/**/*.{png,jpg,jpeg,webp
 	query: '?url',
 });
 const contentImageUrlMap = contentImageModules as Record<string, string>;
+
+const isVA11HallA = entryCollection === 'life' && entryId?.replaceAll('\\', '/').toLowerCase().startsWith('va-11_hall-a/');
 ---
 
 <PageShell title={title} description={description} contentWidth="100%">
@@ -82,7 +84,7 @@ const contentImageUrlMap = contentImageModules as Record<string, string>;
 									)}
 								</div>
 							)}
-							{title && <h1>{title}</h1>}
+							{title && !isVA11HallA && <h1>{title}</h1>}
 							<hr />
 						</div>
 					)

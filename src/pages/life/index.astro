@@ -44,6 +44,13 @@ const groupedCategories = await getGroupedPostsByFirstSegment('life', categoryOr
 									<div class="post-card__body">
 										<h3 class="post-card__title">{post.data.title}</h3>
 										{post.data.description && <p class="post-card__desc">{post.data.description}</p>}
+										{post.data.tags.length > 0 && (
+											<ul class="post-card__tags" aria-label="文章标签">
+												{post.data.tags.map((tag: string) => (
+													<li>#{tag}</li>
+												))}
+											</ul>
+										)}
 										<time class="post-card__date">
 											<FormattedDate date={post.data.pubDate} />
 										</time>
@@ -183,5 +190,23 @@ const groupedCategories = await getGroupedPostsByFirstSegment('life', categoryOr
 		font-size: 0.75rem;
 		color: var(--date-color, #999);
 		margin-top: auto;
+	}
+
+	.post-card__tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		list-style: none;
+		margin: 0;
+		padding: 0;
+	}
+
+	.post-card__tags li {
+		font-size: 0.76rem;
+		line-height: 1;
+		color: rgb(var(--gray));
+		border: 1px solid var(--overlay-border);
+		border-radius: 999px;
+		padding: 0.2rem 0.45rem;
 	}
 </style>

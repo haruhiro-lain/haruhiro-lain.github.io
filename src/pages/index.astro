@@ -135,6 +135,13 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 						<div class="home-card__body">
 							<h3 class="home-card__title">{post.data.title}</h3>
 							{post.data.description && <p class="home-card__desc">{post.data.description}</p>}
+							{post.data.tags.length > 0 && (
+								<ul class="home-card__tags" aria-label="文章标签">
+									{post.data.tags.map((tag) => (
+										<li>#{tag}</li>
+									))}
+								</ul>
+							)}
 							<time class="home-card__date"><FormattedDate date={post.data.pubDate} /></time>
 						</div>
 					</a>

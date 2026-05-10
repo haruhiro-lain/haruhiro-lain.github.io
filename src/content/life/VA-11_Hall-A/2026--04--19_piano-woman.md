@@ -1,14 +1,13 @@
 ---
 title: 'Piano Man'
-description: '烂酒罐配方记录：甜味、宣传与惬意风格的 Piano Woman。'
+description: '甜味、宣传与惬意风格'
 pubDate: '2026-04-19'
 heroImage: ../../../assets/VA-11_Hall-A/KarmotrineDream/17-PianoMan.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['酸味', '宣传', '强烈']
 ---
 
 # <span style="color:#5CA9E6; font-weight:bold;">Piano Man</span>
 
-口味：酸味        类型：宣传、强烈        调制方式：加冰、调和
 
 ## **配料：**
 

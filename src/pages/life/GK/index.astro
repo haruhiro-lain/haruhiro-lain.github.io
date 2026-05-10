@@ -142,6 +142,13 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 										<Image width={720} height={360} src={post.data.heroImage ?? FallbackImage} alt={post.data.title} />
 									</div>
 									<h3 class="blog-title">{post.data.title}</h3>
+									{post.data.tags.length > 0 && (
+										<ul class="blog-tags" aria-label="文章标签">
+											{post.data.tags.map((tag: string) => (
+												<li>#{tag}</li>
+											))}
+										</ul>
+									)}
 									<p class="blog-date"><FormattedDate date={post.data.pubDate} /></p>
 								</a>
 							</li>
@@ -526,6 +533,24 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 		margin: 0;
 		font-size: 0.9rem;
 		color: rgb(var(--gray));
+	}
+
+	.blog-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+		list-style: none;
+		margin: 0.4rem 0 0;
+		padding: 0;
+	}
+
+	.blog-tags li {
+		font-size: 0.76rem;
+		line-height: 1;
+		color: rgb(var(--gray));
+		border: 1px solid var(--overlay-border);
+		border-radius: 999px;
+		padding: 0.2rem 0.45rem;
 	}
 
 	.stock-list {

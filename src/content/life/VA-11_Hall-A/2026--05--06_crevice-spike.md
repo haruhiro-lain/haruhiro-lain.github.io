@@ -1,14 +1,13 @@
 ---
 title: 'Crevice Spike'
-description: '烂酒罐配方记录：酸味、男性化、解酒与调和风格的 Crevice Spike。'
+description: '酸味、男性化、解酒与调和风格'
 pubDate: '2026-05-06'
 heroImage: ./assets/2026--05--06_crevice-spike/8-CreviceSpike.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['酸味', '男性化', '解酒']
 ---
 
 # <span style="color:#66CDAA; font-weight:bold;">Crevice Spike</span>
 
-口味：酸味        类型：男性化、解酒        玻璃杯：加冰杯        调制方式：调和
 
 **配料：**
 

@@ -1,14 +1,13 @@
 ---
 title: 'Sunshine Cloud'
-description: '烂酒罐配方记录：苦味、女性化、温和与加冰、调和风格的 Sunshine Cloud。'
+description: '苦味、女性化、温和与加冰、调和风格'
 pubDate: '2026-05-06'
 heroImage: ./assets/2026--05--06_sunshine-cloud/22-SunshineCloud.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['苦味', '女性化', '温和']
 ---
 
 # <span style="color:#F4A460; font-weight:bold;">Sunshine Cloud</span>
 
-口味：苦味        类型：女性化、温和        调制方式：加冰、调和
 
 **配料：**
 

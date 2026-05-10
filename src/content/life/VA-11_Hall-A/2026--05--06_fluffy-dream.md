@@ -1,14 +1,13 @@
 ---
 title: 'Fluffy Dream'
-description: '烂酒罐配方记录：酸味、女性化、温和与陈化、调和风格的 Fluffy Dream。'
+description: '酸味、女性化、温和与陈化、调和风格'
 pubDate: '2026-05-06'
 heroImage: ./assets/2026--05--06_fluffy-dream/9-FluffyDream.png
-tags: ['VA-11 Hall-A', '调酒', '配方']
+tags: ['酸味', '女性化', '温和']
 ---
 
 # <span style="color:#B0E57C; font-weight:bold;">Fluffy Dream</span>
 
-口味：酸味        类型：女性化、温和        调制方式：陈化、调和
 
 **配料：**
 
