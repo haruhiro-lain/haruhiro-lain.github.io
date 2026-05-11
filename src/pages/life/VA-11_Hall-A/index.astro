@@ -68,14 +68,30 @@ const matchedMenus = vaPosts
 
 <PageShell title="烂酒罐" contentWidth="100%">
 	<article class="va-panel">
-		<p class="eyebrow">VA-11 Hall-A: Cyberpunk Bartender Action</p>
-		<p class="lead">调制饮料，改变人生</p>
+		<header class="va-header">
+			<div class="va-header-left">
+				<p class="eyebrow">VA-11 Hall-A: Cyberpunk Bartender Action</p>
+				<p class="lead">调制饮料，改变人生</p>
+			</div>
+			<div class="va-header-right">
+				<div class="calicomp-badge">
+					<span class="calicomp-face">:)</span>
+					<span>CALICOMP.1</span>
+				</div>
+			</div>
+		</header>
 		<section class="card-grid">
 			<section class="card card--blog">
+				<div class="recipe-tabs">
+					<span class="recipe-tab recipe-tab--active">按名称</span>
+					<span class="recipe-tab">按口味</span>
+					<span class="recipe-tab">按种类</span>
+				</div>
+				<div class="recipe-body">
 				{vaPosts.length > 0 ? (
 					<ul class="blog-list">
 						{vaPosts.map((post: CollectionEntry<'life'>) => (
-							<li class="blog-item">
+							<li class="blog-item" data-tags={JSON.stringify(post.data.tags || [])}>
 								<a href={toVAUppercaseHref(post.id)}>
 									<div class="blog-image">
 									<Image width={360} height={180} src={post.data.heroImage ?? FallbackImage} alt={post.data.title} />
@@ -89,11 +105,17 @@ const matchedMenus = vaPosts
 				) : (
 					<p class="sub">还没有配方记录，先去调一杯吧。</p>
 				)}
+				</div>
 			</section>
 
 			<section class="card card--stock">
+				<div class="stock-brand">
+					<span class="stock-brand-face">:)</span>
+					<span class="stock-brand-text">CALICOMP.1</span>
+					<span class="stock-balance">$ {cabinetStock.length} 种</span>
+				</div>
 				<div class="sidebar-head">
-					<h2>剩余...</h2>
+					<h2>库存原料</h2>
 					<button class="sidebar-toggle" id="stock-toggle" type="button" aria-expanded="false">
 						展开
 					</button>
@@ -120,12 +142,72 @@ const matchedMenus = vaPosts
 						</p>
 						<ul id="draw-result-list"></ul>
 						<p id="draw-result-meta"></p>
+						<div id="draw-all-list" class="draw-all-list" hidden></div>
 					</section>
 				</div>
 			</section>
 		</section>
+		<footer class="va-footer-dec">
+			<span>设置</span>
+			<span>点唱机</span>
+			<span>读取</span>
+			<span>退出</span>
+		</footer>
 	</article>
 </PageShell>
+
+<script>
+	// Lock theme to dark on VA-11 Hall-A page, restore on leave
+	(() => {
+		const STORAGE_KEY = 'theme-preference';
+		const LOCK_KEY = 'va-theme-saved';
+
+		const saved = localStorage.getItem(STORAGE_KEY);
+		if (saved) {
+			localStorage.setItem(LOCK_KEY, saved);
+		}
+		localStorage.setItem(STORAGE_KEY, 'dark');
+		document.documentElement.setAttribute('data-theme', 'dark');
+
+		// Neutralize theme toggle clicks while on this page
+		const guard = () => {
+			document.documentElement.setAttribute('data-theme', 'dark');
+			localStorage.setItem(STORAGE_KEY, 'dark');
+			const btn = document.getElementById('theme-toggle');
+			if (btn) {
+				btn.textContent = '🌙';
+				btn.setAttribute('aria-label', '主题已锁定为深色');
+			}
+		};
+		const toggle = document.getElementById('theme-toggle');
+		if (toggle) {
+			toggle.addEventListener('click', guard, true);
+		}
+		guard(); // ensure icon is correct on first load
+
+		const restore = () => {
+			const prev = localStorage.getItem(LOCK_KEY);
+			if (prev) {
+				localStorage.setItem(STORAGE_KEY, prev);
+			}
+			localStorage.removeItem(LOCK_KEY);
+		};
+
+		// Also watch for direct attribute changes
+		const observer = new MutationObserver(() => {
+			if (document.documentElement.getAttribute('data-theme') !== 'dark') {
+				guard();
+			}
+		});
+		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+		window.addEventListener('beforeunload', restore);
+		document.addEventListener('astro:before-swap', () => {
+			observer.disconnect();
+			restore();
+		}, { once: true });
+	})();
+</script>
 
 <script type="application/json" id="matched-menus-data" set:html={JSON.stringify(matchedMenus)}></script>
 
@@ -147,6 +229,7 @@ const matchedMenus = vaPosts
 		const drawResultLink = document.getElementById('draw-result-link');
 		const drawResultList = document.getElementById('draw-result-list');
 		const drawResultMeta = document.getElementById('draw-result-meta');
+		const drawAllList = document.getElementById('draw-all-list');
 
 		if (
 			!stockToggle ||
@@ -237,6 +320,7 @@ const matchedMenus = vaPosts
 				drawResultLinkWrap.hidden = true;
 				drawResultList.innerHTML = '';
 				drawResultMeta.textContent = '当前酒柜剩余无法匹配文章中的酒体材料。';
+				if (drawAllList) drawAllList.hidden = true;
 				drawResult.hidden = false;
 				return;
 			}
@@ -255,7 +339,38 @@ const matchedMenus = vaPosts
 				drawResultList.appendChild(li);
 			}
 
-			drawResultMeta.textContent = `在 ${matchedMenus.length} 篇匹配酒单中抽取`;
+			// clickable count → show all matched menus
+			drawResultMeta.innerHTML = '';
+			const prefix = document.createTextNode('在 ');
+			const btn = document.createElement('button');
+			btn.type = 'button';
+			btn.className = 'draw-show-all-btn';
+			btn.textContent = `${matchedMenus.length} 篇`;
+			btn.addEventListener('click', () => {
+				if (!drawAllList) return;
+				if (!drawAllList.hidden) {
+					drawAllList.hidden = true;
+					return;
+				}
+				drawAllList.innerHTML = '';
+				const heading = document.createElement('p');
+				heading.className = 'draw-all-heading';
+				drawAllList.appendChild(heading);
+				for (const m of matchedMenus) {
+					const a = document.createElement('a');
+					a.href = m.href;
+					a.textContent = m.title;
+					a.className = 'draw-all-link';
+					drawAllList.appendChild(a);
+				}
+				drawAllList.hidden = false;
+			});
+			const suffix = document.createTextNode(' 匹配酒单中抽取');
+			drawResultMeta.appendChild(prefix);
+			drawResultMeta.appendChild(btn);
+			drawResultMeta.appendChild(suffix);
+
+			if (drawAllList) drawAllList.hidden = true;
 			drawResult.hidden = false;
 		};
 
@@ -266,208 +381,546 @@ const matchedMenus = vaPosts
 		renderStock();
 	};
 
-	document.addEventListener('DOMContentLoaded', () => { initStockPanel(); });
-	document.addEventListener('astro:page-load', () => { initStockPanel(); });
+	const initRecipeTabs = () => {
+		const tabs = document.querySelectorAll('.recipe-tab');
+		const blogItems = document.querySelectorAll<HTMLElement>('.blog-item');
+		const blogList = document.querySelector('.blog-list');
+		const recipeBody = document.querySelector('.recipe-body');
+
+		if (!tabs.length || !blogItems.length || !recipeBody || !blogList) return;
+
+		// prevent double-bind on Astro page transitions
+		if ((tabs[0] as HTMLElement).dataset.bound === 'true') return;
+		(tabs[0] as HTMLElement).dataset.bound = 'true';
+
+		const flavorTags = ['甜味', '酸味', '苦味', '辛辣', '发泡'];
+		const categoryTags = ['经典', '女性化', '男性化', '时尚', '宣传', '复古'];
+
+		const showAllBlogItems = () => {
+			blogItems.forEach((item) => {
+				item.hidden = false;
+			});
+			const sub = recipeBody.querySelector('.recipe-submenu');
+			if (sub) sub.remove();
+		};
+
+		const showSubMenu = (tags: string[]) => {
+			const existing = recipeBody.querySelector('.recipe-submenu');
+			if (existing) existing.remove();
+			blogItems.forEach((item) => {
+				item.hidden = true;
+			});
+
+			const subMenu = document.createElement('div');
+			subMenu.className = 'recipe-submenu';
+
+			const backBtn = document.createElement('button');
+			backBtn.type = 'button';
+			backBtn.className = 'recipe-submenu-back';
+			backBtn.textContent = '← 返回';
+			backBtn.addEventListener('click', () => {
+				showAllBlogItems();
+				tabs.forEach((t) => t.classList.remove('recipe-tab--active'));
+				tabs[0].classList.add('recipe-tab--active');
+			});
+			subMenu.appendChild(backBtn);
+
+			const list = document.createElement('ul');
+			list.className = 'recipe-submenu-list';
+
+			for (const tag of tags) {
+				const li = document.createElement('li');
+				const btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'recipe-submenu-btn';
+				btn.textContent = tag;
+				btn.addEventListener('click', () => {
+					blogItems.forEach((item) => {
+						const itemTags: string[] = JSON.parse(item.dataset.tags || '[]');
+						item.hidden = !itemTags.includes(tag);
+					});
+				});
+				li.appendChild(btn);
+				list.appendChild(li);
+			}
+
+			subMenu.appendChild(list);
+			recipeBody.insertBefore(subMenu, blogList);
+		};
+
+		tabs.forEach((tab, index) => {
+			tab.addEventListener('click', () => {
+				tabs.forEach((t) => t.classList.remove('recipe-tab--active'));
+				tab.classList.add('recipe-tab--active');
+
+				if (index === 0) {
+					showAllBlogItems();
+				} else if (index === 1) {
+					showSubMenu(flavorTags);
+				} else if (index === 2) {
+					showSubMenu(categoryTags);
+				}
+			});
+		});
+	};
+
+	document.addEventListener('DOMContentLoaded', () => { initStockPanel(); initRecipeTabs(); });
+	document.addEventListener('astro:page-load', () => { initStockPanel(); initRecipeTabs(); });
 	initStockPanel();
+	initRecipeTabs();
 </script>
 
 <style>
+	/* ==============================================
+	   VA-11 Hall-A: Cyberpunk Bartender Action Theme
+	   ============================================== */
 	:global(.page-shell__main) {
 		padding-top: 0;
 		padding-bottom: 0;
 	}
 
+	/* ---- CSS Custom Properties ---- */
 	.va-panel {
-		--home-side-space: max(1rem, calc((100% - 900px) / 2 + 1rem));
-		--stock-min-width: 220px;
-		--stock-column-width: clamp(220px, 24vw, 280px);
-		--floating-actions-safe-space: 6rem;
-		--panel-grid-opacity: 0.05;
-		--panel-fill-opacity: 0.05;
+		--va-cyan: #00e5ff;
+		--va-cyan-dim: #00b8d4;
+		--va-pink: #ff4081;
+		--va-pink-glow: #ff80ab;
+		--va-green: #69f0ae;
+		--va-green-btn: #00c853;
+		--va-orange: #ff9100;
+		--va-bg: #080c14;
+		--va-panel-bg: #0a0f1a;
+		--va-panel-border: #0d3b4f;
+		--va-text: #c8d6e5;
+		--va-text-dim: #5a6a82;
+		--va-white: #e8edf5;
+
+		--home-side-space: max(1rem, calc((100% - 1100px) / 2 + 1rem));
+		--stock-column-width: clamp(220px, 22vw, 260px);
+
 		position: relative;
 		width: 100%;
 		box-sizing: border-box;
 		min-height: 100vh;
 		margin: 0;
-		padding-top: 0;
-		padding-bottom: var(--floating-actions-safe-space);
-		padding-left: var(--home-side-space);
-		padding-right: 0;
+		padding: 0 var(--home-side-space) 4rem var(--home-side-space);
 		border: none;
 		border-radius: 0;
 		background:
+			/* scanlines */
 			repeating-linear-gradient(
 				0deg,
-				rgba(var(--gray-light), var(--panel-grid-opacity)) 0,
-				rgba(var(--gray-light), var(--panel-grid-opacity)) 1px,
+				rgba(0, 229, 255, 0.015) 0px,
+				rgba(0, 229, 255, 0.015) 1px,
 				transparent 1px,
-				transparent 16px
+				transparent 3px
 			),
-			rgba(var(--gray-light), var(--panel-fill-opacity));
-		box-shadow: var(--box-shadow);
-		backdrop-filter: blur(6px);
-		-webkit-backdrop-filter: blur(6px);
+			/* subtle dot grid */
+			radial-gradient(circle, rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+			var(--va-bg);
+		background-size: 100% 100%, 16px 16px, 100% 100%;
+		font-family: var(--font-atkinson), 'Courier New', monospace;
+	}
+
+	/* ---- Header / Branding ---- */
+	.va-header {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 1.5rem;
+		padding: 1.8rem 0 1rem;
+		border-bottom: 1px solid rgba(0, 229, 255, 0.18);
+		margin-bottom: 1.2rem;
+	}
+
+	.va-header-left {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.va-header-right {
+		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 0.35rem;
 	}
 
 	.eyebrow {
-		margin: 0 0 0.5rem;
-		font-size: 0.8rem;
-		letter-spacing: 0.2em;
+		margin: 0;
+		font-size: 0.7rem;
+		letter-spacing: 0.3em;
 		text-transform: uppercase;
-		color: rgb(var(--gray));
+		color: var(--va-cyan);
+		text-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
 	}
 
 	.lead {
 		margin: 0;
-		padding: 0.35rem 0;
-		font-size: clamp(1.6rem, 3.8vw, 2.5rem);
-		font-style: italic;
-		font-weight: 800;
-		letter-spacing: 0.12em;
+		font-size: clamp(1.4rem, 3.2vw, 2rem);
+		font-weight: 900;
+		letter-spacing: 0.15em;
 		line-height: 1.1;
 		text-transform: uppercase;
-		text-wrap: balance;
-		color: var(--accent);
+		color: var(--va-pink);
+		text-shadow:
+			0 0 10px rgba(255, 64, 129, 0.6),
+			0 0 30px rgba(255, 64, 129, 0.3);
+	}
+
+	.calicomp-badge {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.4rem 0.7rem;
+		border: 1px solid var(--va-cyan);
+		background: rgba(0, 229, 255, 0.06);
+		font-size: 0.7rem;
+		letter-spacing: 0.1em;
+		color: var(--va-cyan);
+		text-transform: uppercase;
+	}
+
+	.calicomp-face {
+		width: 24px;
+		height: 24px;
+		border: 1px solid var(--va-cyan);
+		background: rgba(0, 229, 255, 0.12);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.65rem;
+		line-height: 1;
 	}
 
 	.sub {
-		margin: 0.8rem 0 0;
-		font-size: 0.95rem;
-		letter-spacing: 0.06em;
-		color: rgb(var(--gray-dark));
-		opacity: 0.9;
+		margin: 0;
+		font-size: 0.82rem;
+		letter-spacing: 0.04em;
+		color: var(--va-text-dim);
 	}
 
+	/* ---- Two-Column Grid ---- */
 	.card-grid {
-		margin-top: 1rem;
-		padding-top: 1rem;
 		display: grid;
-		gap: 0.85rem;
+		gap: 1rem;
 		grid-template-columns: minmax(0, 1fr) var(--stock-column-width);
 	}
 
-	.card {
-		padding: 0.85rem;
-		border-radius: 10px;
-	}
-
-	.card h2 {
-		margin: 0 0 0.75rem;
-		font-size: 1rem;
-		letter-spacing: 0.05em;
-	}
-
+	/* ======= LEFT PANEL: Recipe Browser ======= */
 	.card--blog {
 		display: flex;
 		flex-direction: column;
+		border: 2px solid var(--va-cyan);
+		background: var(--va-panel-bg);
+		padding: 0;
+		border-radius: 0;
+		box-shadow:
+			0 0 12px rgba(0, 229, 255, 0.15),
+			inset 0 0 40px rgba(0, 229, 255, 0.03);
+		position: relative;
 	}
 
-	.card--stock {
-		min-width: var(--stock-min-width);
-		align-self: start;
-		transform: translateX(-1.9rem);
+	/* inner white frame like the game */
+	.card--blog::after {
+		content: '';
+		position: absolute;
+		inset: 3px;
+		border: 1px solid rgba(0, 229, 255, 0.25);
+		pointer-events: none;
 	}
 
-	.sidebar-head {
+	/* Tab headers */
+	.recipe-tabs {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
-		margin-bottom: 0.75rem;
-	}
-
-	.sidebar-head h2 {
+		gap: 0;
+		border-bottom: 2px solid var(--va-cyan);
+		background: rgba(0, 229, 255, 0.04);
+		padding: 0;
 		margin: 0;
-		font-size: 0.95rem;
+		list-style: none;
+		position: relative;
+		z-index: 1;
 	}
 
-	.sidebar-toggle {
-		font-size: 0.82rem;
-		line-height: 1;
-		padding: 0.35rem 0.55rem;
-		border-radius: 8px;
+	.recipe-tab {
+		padding: 0.55rem 1.2rem;
+		font-size: 0.78rem;
+		letter-spacing: 0.08em;
+		color: var(--va-cyan-dim);
+		cursor: default;
+		border-right: 1px solid rgba(0, 229, 255, 0.15);
+		transition: 0.15s ease;
+		text-transform: uppercase;
+	}
+
+	.recipe-tab:hover {
+		color: var(--va-cyan);
+		background: rgba(0, 229, 255, 0.06);
+	}
+
+	.recipe-tab--active {
+		color: var(--va-cyan);
+		background: rgba(0, 229, 255, 0.1);
+		text-shadow: 0 0 6px rgba(0, 229, 255, 0.4);
+	}
+
+	/* Sub-menu for 按口味 / 按种类 (global — created by client JS) */
+	:global(.recipe-submenu) {
+		padding: 0.45rem 0.7rem;
+		border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		flex-wrap: nowrap;
+		gap: 0.25rem;
+	}
+
+	:global(.recipe-submenu-back) {
+		align-self: flex-start;
+		font-size: 0.66rem;
+		letter-spacing: 0.04em;
+		padding: 0.16rem 0.42rem;
+		border: 1px solid var(--va-cyan-dim);
 		background: transparent;
-		color: rgb(var(--gray-dark));
+		color: var(--va-cyan-dim);
 		cursor: pointer;
-		transition: 0.2s ease;
+		transition: 0.15s ease;
+		text-transform: uppercase;
 	}
 
-	.sidebar-toggle:hover {
-		color: var(--accent);
+	:global(.recipe-submenu-back:hover) {
+		border-color: var(--va-cyan);
+		color: var(--va-cyan);
+		background: rgba(0, 229, 255, 0.06);
+		box-shadow: 0 0 6px rgba(0, 229, 255, 0.2);
+	}
+
+	:global(.recipe-submenu-list) {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-wrap: nowrap;
+		gap: 0.35rem;
+	}
+
+	:global(.recipe-submenu-btn) {
+		font-size: 0.78rem;
+		letter-spacing: 0.04em;
+		padding: 0.3rem 0.7rem;
+		border: 1px solid rgba(0, 229, 255, 0.25);
+		border-radius: 8px;
+		background: rgba(0, 229, 255, 0.06);
+		color: var(--va-text);
+		cursor: pointer;
+		transition: 0.15s ease;
+	}
+
+	:global(.recipe-submenu-btn:hover) {
+		border-color: var(--va-cyan);
+		color: var(--va-cyan);
+		background: rgba(0, 229, 255, 0.1);
+		box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+		text-shadow: 0 0 4px rgba(0, 229, 255, 0.3);
+	}
+
+	.recipe-body {
+		padding: 0.8rem;
+		position: relative;
+		z-index: 1;
 	}
 
 	.blog-list {
 		list-style: none;
 		padding: 0;
 		margin: 0;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 1rem;
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.7rem;
 	}
 
 	.blog-item {
-		width: calc(33.333% - 0.667rem);
 		display: flex;
 		flex-direction: column;
+		border: 1px solid rgba(0, 229, 255, 0.12);
+		background: rgba(0, 229, 255, 0.03);
+		transition: 0.2s ease;
+	}
+
+	.blog-item[hidden] {
+		display: none !important;
+	}
+
+	.blog-item:hover {
+		border-color: var(--va-cyan);
+		background: rgba(0, 229, 255, 0.07);
+		box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
 	}
 
 	.blog-item a {
 		display: block;
 		text-decoration: none;
 		color: inherit;
+		padding: 0.45rem;
 	}
 
 	.blog-image {
 		width: 100%;
 		margin-bottom: 0.5rem;
-		border-radius: 10px;
 		overflow: hidden;
+		border: 1px solid rgba(0, 229, 255, 0.15);
 	}
 
 	.blog-image img {
 		width: 100%;
 		height: auto;
 		display: block;
-		transition: 0.2s ease;
-		border-radius: 12px;
+		transition: 0.25s ease;
+		filter: brightness(0.9) saturate(1.1);
 	}
 
 	.blog-item a:hover .blog-image img {
-		transform: scale(1.05);
+		transform: scale(1.06);
+		filter: brightness(1.05) saturate(1.2);
 	}
 
 	.blog-title {
-		margin: 0;
-		font-size: 1rem;
-		font-weight: 600;
-		color: rgb(var(--black));
+		margin: 0 0 0.2rem;
+		font-size: 0.92rem;
+		font-weight: 700;
+		color: var(--va-white);
 		line-height: 1.2;
+		letter-spacing: 0.03em;
 	}
 
 	.blog-item a:hover .blog-title {
-		color: var(--accent);
+		color: var(--va-cyan);
+		text-shadow: 0 0 6px rgba(0, 229, 255, 0.3);
 	}
 
 	.blog-date {
 		margin: 0;
-		font-size: 0.78rem;
-		color: rgb(var(--gray));
+		font-size: 0.7rem;
+		color: var(--va-text-dim);
+		letter-spacing: 0.05em;
 	}
 
+	/* ======= RIGHT PANEL: Status / Inventory ======= */
+	.card--stock {
+		min-width: var(--stock-column-width);
+		align-self: start;
+		border: 2px solid var(--va-panel-border);
+		background: var(--va-panel-bg);
+		padding: 0.9rem 1rem;
+		border-radius: 0;
+		box-shadow:
+			0 0 10px rgba(0, 229, 255, 0.08),
+			inset 0 0 20px rgba(0, 229, 255, 0.02);
+		position: relative;
+	}
+
+	/* CALICOMP header inside stock panel */
+	.stock-brand {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-bottom: 0.6rem;
+		padding-bottom: 0.55rem;
+		border-bottom: 1px solid rgba(0, 229, 255, 0.15);
+	}
+
+	.stock-brand-face {
+		width: 28px;
+		height: 28px;
+		border: 1px solid var(--va-cyan);
+		background: rgba(0, 229, 255, 0.1);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 0.7rem;
+		color: var(--va-cyan);
+		flex-shrink: 0;
+	}
+
+	.stock-brand-text {
+		font-size: 0.65rem;
+		letter-spacing: 0.12em;
+		color: var(--va-cyan);
+		text-transform: uppercase;
+	}
+
+	.stock-balance {
+		margin-left: auto;
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: var(--va-green);
+		letter-spacing: 0.05em;
+		text-shadow: 0 0 6px rgba(105, 240, 174, 0.4);
+	}
+
+	.sidebar-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		margin-bottom: 0.6rem;
+	}
+
+	.sidebar-head h2 {
+		margin: 0;
+		font-size: 0.82rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--va-cyan);
+	}
+
+	.sidebar-toggle {
+		font-size: 0.7rem;
+		letter-spacing: 0.06em;
+		padding: 0.3rem 0.55rem;
+		border: 1px solid var(--va-cyan-dim);
+		background: transparent;
+		color: var(--va-cyan-dim);
+		cursor: pointer;
+		transition: 0.2s ease;
+		text-transform: uppercase;
+	}
+
+	.sidebar-toggle:hover {
+		border-color: var(--va-cyan);
+		color: var(--va-cyan);
+		background: rgba(0, 229, 255, 0.06);
+		box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+	}
+
+	/* ---- Ingredient Slots ---- */
 	.stock-list {
-		list-style: disc;
-		padding-left: 1.25rem;
+		list-style: none;
+		padding: 0;
 		margin: 0;
 		display: grid;
-		gap: 0.35rem;
+		gap: 0.3rem;
 	}
 
 	.stock-list li {
 		display: flex;
 		justify-content: space-between;
+		align-items: center;
 		gap: 0.5rem;
-		font-size: 0.92rem;
-		color: rgb(var(--gray-dark));
+		font-size: 0.8rem;
+		color: var(--va-text);
+		padding: 0.3rem 0.45rem;
+		border: 1px solid rgba(0, 229, 255, 0.08);
+		background: rgba(0, 229, 255, 0.02);
+		transition: 0.15s ease;
+	}
+
+	.stock-list li:hover {
+		border-color: rgba(0, 229, 255, 0.25);
+		background: rgba(0, 229, 255, 0.05);
 	}
 
 	.stock-list li[hidden] {
@@ -476,15 +929,18 @@ const matchedMenus = vaPosts
 
 	.stock-list strong {
 		font-weight: 700;
-		color: var(--accent);
+		color: var(--va-green);
+		letter-spacing: 0.03em;
+		text-shadow: 0 0 4px rgba(105, 240, 174, 0.3);
 	}
 
+	/* ---- Pagination ---- */
 	.stock-pagination {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.5rem;
-		margin-top: 0.65rem;
+		gap: 0.4rem;
+		margin-top: 0.55rem;
 	}
 
 	.stock-pagination[hidden] {
@@ -492,47 +948,65 @@ const matchedMenus = vaPosts
 	}
 
 	.stock-pagination button {
-		font-size: 0.8rem;
-		padding: 0.3rem 0.5rem;
-		border-radius: 6px;
+		font-size: 0.7rem;
+		letter-spacing: 0.05em;
+		padding: 0.25rem 0.5rem;
+		border: 1px solid var(--va-cyan-dim);
 		background: transparent;
-		color: rgb(var(--gray-dark));
+		color: var(--va-cyan-dim);
+		cursor: pointer;
+		transition: 0.15s ease;
+		text-transform: uppercase;
+	}
+
+	.stock-pagination button:hover:not(:disabled) {
+		border-color: var(--va-cyan);
+		color: var(--va-cyan);
 	}
 
 	.stock-pagination button:disabled {
-		opacity: 0.5;
+		opacity: 0.3;
 		cursor: not-allowed;
 	}
 
 	.stock-pagination span {
-		font-size: 0.8rem;
-		color: rgb(var(--gray));
+		font-size: 0.7rem;
+		color: var(--va-text-dim);
+		letter-spacing: 0.04em;
 	}
 
+	/* ---- Draw Menu (Mixing) ---- */
 	.draw-menu {
-		margin-top: 0.9rem;
+		margin-top: 0.8rem;
+		padding-top: 0.7rem;
+		border-top: 1px solid rgba(0, 229, 255, 0.15);
 		display: grid;
-		gap: 0.6rem;
+		gap: 0.55rem;
 	}
 
 	.draw-menu-btn {
-		font-size: 0.84rem;
-		padding: 0.45rem 0.6rem;
-		border-radius: 8px;
-		background: transparent;
-		color: rgb(var(--gray-dark));
+		font-size: 0.8rem;
+		letter-spacing: 0.1em;
+		padding: 0.5rem 0.8rem;
+		border: 2px solid var(--va-orange);
+		background: rgba(255, 145, 0, 0.08);
+		color: var(--va-orange);
 		cursor: pointer;
 		transition: 0.2s ease;
+		text-transform: uppercase;
+		font-weight: 700;
 	}
 
 	.draw-menu-btn:hover {
-		color: var(--accent);
+		background: rgba(255, 145, 0, 0.18);
+		box-shadow: 0 0 14px rgba(255, 145, 0, 0.35);
+		color: #ffb74d;
 	}
 
 	.draw-result {
-		padding: 0.55rem 0.6rem;
-		border-radius: 8px;
-		background: rgba(var(--gray-light), 0.18);
+		padding: 0.55rem 0.65rem;
+		border: 1px solid var(--va-cyan);
+		background: rgba(0, 229, 255, 0.04);
 	}
 
 	.draw-result[hidden] {
@@ -541,46 +1015,174 @@ const matchedMenus = vaPosts
 
 	.draw-result h3 {
 		margin: 0;
-		font-size: 0.86rem;
-		letter-spacing: 0.04em;
-		color: rgb(var(--gray-dark));
+		font-size: 1rem;
+		font-weight: 700;
+		letter-spacing: 0.05em;
+		color: var(--va-cyan);
+		text-shadow: 0 0 5px rgba(0, 229, 255, 0.3);
 	}
 
-	.draw-result ul {
+	/* ul/li are dynamically populated by JS — use global */
+	:global(#draw-result-list) {
 		margin: 0.4rem 0 0;
-		padding-left: 1.05rem;
+		padding-left: 1rem;
 		display: grid;
 		gap: 0.2rem;
+		list-style: square;
 	}
 
-	.draw-result li {
-		font-size: 0.85rem;
-		color: rgb(var(--gray-dark));
+	:global(#draw-result-list li) {
+		font-size: 0.68rem;
+		color: var(--va-text);
+	}
+
+	:global(#draw-result-list li::marker) {
+		color: var(--va-cyan-dim);
 	}
 
 	.draw-result p {
-		margin: 0.45rem 0 0;
-		font-size: 0.76rem;
-		color: rgb(var(--gray));
+		margin: 0.35rem 0 0;
+		font-size: 0.68rem;
+		color: var(--va-text-dim);
+		letter-spacing: 0.04em;
 	}
 
+	/* inline button: "N 篇" */
+	:global(.draw-show-all-btn) {
+		display: inline;
+		padding: 0;
+		border: none;
+		border-bottom: 1px dashed var(--va-cyan-dim);
+		background: transparent;
+		color: var(--va-cyan);
+		font: inherit;
+		font-size: 0.7rem;
+		font-weight: 700;
+		cursor: pointer;
+		letter-spacing: 0.04em;
+	}
+
+	:global(.draw-show-all-btn:hover) {
+		color: var(--va-pink);
+		border-bottom-color: var(--va-pink);
+	}
+
+	/* full matched list card */
+	:global(.draw-all-list) {
+		margin-top: 0.55rem;
+		padding: 0.55rem 0.65rem;
+		border: 1px solid rgba(0, 229, 255, 0.2);
+		background: rgba(0, 229, 255, 0.04);
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem 0.6rem;
+	}
+
+	:global(.draw-all-list[hidden]) {
+		display: none !important;
+	}
+
+	:global(.draw-all-heading) {
+		width: 100%;
+		margin: 0 0 0.15rem;
+		font-size: 0.66rem;
+		color: var(--va-text-dim);
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
+
+	:global(.draw-all-link) {
+		font-size: 0.72rem;
+		color: var(--va-cyan);
+		text-decoration: none;
+		padding: 0.15rem 0.4rem;
+		border: 1px solid rgba(0, 229, 255, 0.15);
+		border-radius: 4px;
+		transition: 0.15s ease;
+	}
+
+	:global(.draw-all-link:hover) {
+		border-color: var(--va-cyan);
+		background: rgba(0, 229, 255, 0.08);
+		text-shadow: 0 0 4px rgba(0, 229, 255, 0.3);
+	}
+
+	.draw-result a {
+		color: var(--va-pink);
+		text-decoration: none;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+	}
+
+	.draw-result a:hover {
+		text-shadow: 0 0 6px rgba(255, 64, 129, 0.5);
+	}
+
+	/* ---- Footer decoration ---- */
+	.va-footer-dec {
+		margin-top: 1.5rem;
+		padding-top: 0.8rem;
+		border-top: 1px solid rgba(0, 229, 255, 0.1);
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 1.2rem;
+		font-size: 0.65rem;
+		letter-spacing: 0.08em;
+		color: var(--va-text-dim);
+		text-transform: uppercase;
+	}
+
+	.va-footer-dec span {
+		transition: 0.2s ease;
+		cursor: default;
+	}
+
+	.va-footer-dec span:hover {
+		color: var(--va-cyan);
+	}
+
+	/* ======= Responsive ======= */
 	@media (max-width: 900px) {
 		.va-panel {
-			padding-left: 1rem;
-			padding-right: 1rem;
-			padding-bottom: 1rem;
+			padding-left: 0.8rem;
+			padding-right: 0.8rem;
 		}
 
 		.card-grid {
 			grid-template-columns: 1fr;
 		}
 
-		.blog-item {
-			width: calc(50% - 0.5rem);
+		.blog-list {
+			grid-template-columns: repeat(2, 1fr);
 		}
 
-		.card--stock {
-			transform: none;
+		.va-header {
+			flex-direction: column;
+			gap: 0.6rem;
 		}
+
+		.va-header-right {
+			align-items: flex-start;
+		}
+	}
+
+	@media (max-width: 500px) {
+		.blog-list {
+			grid-template-columns: 1fr;
+		}
+
+		.recipe-tab {
+			padding: 0.45rem 0.7rem;
+			font-size: 0.7rem;
+		}
+	}
+
+	/* Locked theme-toggle on VA-11 Hall-A pages */
+	:global(#theme-toggle) {
+		opacity: 0.45;
+		border-color: var(--va-cyan) !important;
+		box-shadow: 0 0 10px rgba(0, 229, 255, 0.4), 0 0 20px rgba(0, 229, 255, 0.15);
+		cursor: not-allowed !important;
 	}
 </style>

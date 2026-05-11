@@ -25,6 +25,31 @@ const headTitle = title === SITE_TITLE ? SITE_TITLE : `${title} - ${SITE_TITLE}`
 <html lang="zh-cn">
 	<head>
 		<BaseHead title={headTitle} description={description} />
+		<script is:inline>
+			(function() {
+				var STORAGE_KEY = 'theme-preference';
+				var LOCK_KEY = 'va-theme-saved';
+				var isVA = function(path) {
+					return path && path.indexOf('/life/VA-11_Hall-A') === 0;
+				};
+				var lock = function() {
+					var saved = localStorage.getItem(STORAGE_KEY);
+					if (saved && saved !== 'dark') {
+						localStorage.setItem(LOCK_KEY, saved);
+					}
+					localStorage.setItem(STORAGE_KEY, 'dark');
+					document.documentElement.setAttribute('data-theme', 'dark');
+				};
+				if (isVA(window.location.pathname)) {
+					lock();
+				}
+				document.addEventListener('astro:before-swap', function() {
+					if (isVA(window.location.pathname)) {
+						lock();
+					}
+				});
+			})();
+		</script>
 	</head>
 	<body class:list={["page-shell", !showHeader && 'page-shell--no-header']}>
 		{showHeader && <Header />}
