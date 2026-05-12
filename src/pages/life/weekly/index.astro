@@ -1,4 +1,5 @@
 ---
+import FormattedDate from '../../../components/FormattedDate.astro';
 import PageShell from '../../../layouts/PageShell.astro';
 import type { CollectionEntry } from 'astro:content';
 import { getSortedPosts } from '../../../utils/content';
@@ -10,70 +11,147 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 
 <PageShell title="周掸" contentWidth="900px">
 	<article>
-		<h1>周掸</h1>
-		<p>（并非）每周更新复盘，能做的事没那么多，不陷入内耗就算成功了说是...</p>
+		<h1 class="page-title">周掸</h1>
+		<p class="page-desc">（并非）每周更新复盘，能做的事没那么多，不陷入内耗就算成功了说是...</p>
 		{posts.length > 0 ? (
 			<section>
-				<ul class="post-list">
+				<ul class="post-grid">
 					{posts.map((post: CollectionEntry<'life'>) => (
 						<li>
-							<a href={`/life/weekly/${post.id.slice('weekly/'.length)}/`}>
-								<h3>{post.data.title}</h3>
-								<p>{post.data.description}</p>
-								{post.data.tags.length > 0 && (
-									<ul class="post-list-tags" aria-label="文章标签">
-										{post.data.tags.map((tag: string) => (
-											<li>#{tag}</li>
-										))}
-									</ul>
+							<a href={`/life/weekly/${post.id.slice('weekly/'.length)}/`} class="post-card">
+								{post.data.heroImage && (
+									<div class="post-card__cover">
+										<img src={(post.data.heroImage as any)?.src ?? post.data.heroImage} alt="" loading="lazy" decoding="async" />
+									</div>
 								)}
+								<div class="post-card__body">
+									<h3 class="post-card__title">{post.data.title}</h3>
+									{post.data.description && <p class="post-card__desc">{post.data.description}</p>}
+									{post.data.tags.length > 0 && (
+										<ul class="post-card__tags" aria-label="文章标签">
+											{post.data.tags.map((tag: string) => (
+												<li>#{tag}</li>
+											))}
+										</ul>
+									)}
+									<time class="post-card__date">
+										<FormattedDate date={post.data.pubDate} />
+									</time>
+								</div>
 							</a>
 						</li>
 					))}
 				</ul>
 			</section>
 		) : (
-			<p>周掸暂时还没有文章。</p>
+			<p class="empty-indicator">周掸暂时还没有文章。</p>
 		)}
 	</article>
 </PageShell>
 
 <style>
-	.post-list a {
-		display: block;
-		color: inherit;
-		text-decoration: none;
+	.page-title {
+		margin-bottom: 0.5rem;
 	}
 
-	.post-list {
-		list-style: none;
-		padding: 0;
+	.page-desc {
+		margin: 0 0 2rem;
+		color: var(--desc-color, #666);
+	}
+
+	.empty-indicator {
+		margin: 0.75rem 0 0;
+		font-size: 0.875rem;
+		color: var(--date-color, #999);
+	}
+
+	.post-grid {
+		list-style-type: none;
 		margin: 0;
+		padding: 0;
 		display: grid;
-		gap: 1rem;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 1.5rem;
 	}
 
-	.post-list li {
-		border: 1px solid rgba(0, 0, 0, 0.08);
-		border-radius: 12px;
+	.post-card {
+		display: flex;
+		flex-direction: column;
+		border-radius: 0.5rem;
+		border: 1px solid var(--border-color, #e5e7eb);
+		overflow: hidden;
+		transition: all 0.2s;
+		text-decoration: none;
+		color: inherit;
+		height: 100%;
+	}
+
+	.post-card:hover {
+		border-color: var(--accent-color, #0066cc);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	}
+
+	.post-card__cover {
+		width: 100%;
+		height: 160px;
+		overflow: hidden;
+		background-color: var(--bg-gray, #f3f4f6);
+	}
+
+	.post-card__cover img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.2s;
+	}
+
+	.post-card:hover .post-card__cover img {
+		transform: scale(1.05);
+	}
+
+	.post-card__body {
 		padding: 1rem;
+		display: flex;
+		flex-direction: column;
+		flex-grow: 1;
 	}
 
-	.post-list p {
-		margin: 0.5rem 0 0;
-		color: rgb(var(--gray));
+	.post-card__title {
+		margin: 0 0 0.5rem 0;
+		font-size: 1rem;
+		font-weight: 600;
+		line-height: 1.4;
 	}
 
-	.post-list-tags {
+	.post-card__desc {
+		margin: 0 0 0.75rem 0;
+		font-size: 0.875rem;
+		color: var(--desc-color, #666);
+		line-height: 1.4;
+		flex-grow: 1;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+
+	.post-card__date {
+		display: block;
+		font-size: 0.75rem;
+		color: var(--date-color, #999);
+		margin-top: auto;
+	}
+
+	.post-card__tags {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.35rem;
 		list-style: none;
-		margin: 0.5rem 0 0;
+		margin: 0 0 0.5rem 0;
 		padding: 0;
 	}
 
-	.post-list-tags li {
+	.post-card__tags li {
 		font-size: 0.76rem;
 		line-height: 1;
 		color: rgb(var(--gray));

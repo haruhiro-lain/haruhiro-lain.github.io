@@ -83,13 +83,20 @@ const matchedMenus = vaPosts
 		<section class="card-grid">
 			<section class="card card--blog">
 				<div class="recipe-tabs">
-					<span class="recipe-tab recipe-tab--active">按名称</span>
+					<span class="recipe-tab">按名称</span>
 					<span class="recipe-tab">按口味</span>
 					<span class="recipe-tab">按种类</span>
 				</div>
 				<div class="recipe-body">
+				<div class="recipe-welcome" id="recipe-welcome">
+					<div class="rw-icon">🍸</div>
+					<p class="rw-logo">B.T.C</p>
+					<p class="rw-sub">调酒指南</p>
+					<p class="rw-greeting">欢迎回来，Jill</p>
+					<p class="rw-hint">使用上方导航栏 / 浏览调酒配方</p>
+				</div>
 				{vaPosts.length > 0 ? (
-					<ul class="blog-list">
+					<ul class="blog-list" id="blog-list" hidden>
 						{vaPosts.map((post: CollectionEntry<'life'>) => (
 							<li class="blog-item" data-tags={JSON.stringify(post.data.tags || [])}>
 								<a href={toVAUppercaseHref(post.id)}>
@@ -147,12 +154,7 @@ const matchedMenus = vaPosts
 				</div>
 			</section>
 		</section>
-		<footer class="va-footer-dec">
-			<span>设置</span>
-			<span>点唱机</span>
-			<span>读取</span>
-			<span>退出</span>
-		</footer>
+
 	</article>
 </PageShell>
 
@@ -384,8 +386,9 @@ const matchedMenus = vaPosts
 	const initRecipeTabs = () => {
 		const tabs = document.querySelectorAll('.recipe-tab');
 		const blogItems = document.querySelectorAll<HTMLElement>('.blog-item');
-		const blogList = document.querySelector('.blog-list');
+		const blogList = document.getElementById('blog-list');
 		const recipeBody = document.querySelector('.recipe-body');
+		const welcome = document.getElementById('recipe-welcome');
 
 		if (!tabs.length || !blogItems.length || !recipeBody || !blogList) return;
 
@@ -397,6 +400,7 @@ const matchedMenus = vaPosts
 		const categoryTags = ['经典', '女性化', '男性化', '时尚', '宣传', '复古'];
 
 		const showAllBlogItems = () => {
+			blogList.hidden = false;
 			blogItems.forEach((item) => {
 				item.hidden = false;
 			});
@@ -405,6 +409,7 @@ const matchedMenus = vaPosts
 		};
 
 		const showSubMenu = (tags: string[]) => {
+			blogList.hidden = false;
 			const existing = recipeBody.querySelector('.recipe-submenu');
 			if (existing) existing.remove();
 			blogItems.forEach((item) => {
@@ -450,6 +455,9 @@ const matchedMenus = vaPosts
 
 		tabs.forEach((tab, index) => {
 			tab.addEventListener('click', () => {
+				// hide welcome on any tab interaction
+				if (welcome) welcome.hidden = true;
+
 				tabs.forEach((t) => t.classList.remove('recipe-tab--active'));
 				tab.classList.add('recipe-tab--active');
 
@@ -599,6 +607,8 @@ const matchedMenus = vaPosts
 		font-size: 0.82rem;
 		letter-spacing: 0.04em;
 		color: var(--va-text-dim);
+		text-align: center;
+		padding: 2rem 0;
 	}
 
 	/* ---- Two-Column Grid ---- */
@@ -732,6 +742,60 @@ const matchedMenus = vaPosts
 		z-index: 1;
 	}
 
+	/* Welcome screen inside the recipe panel */
+	.recipe-welcome {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 3rem 1rem;
+		text-align: center;
+		gap: 0.4rem;
+	}
+
+	.recipe-welcome[hidden] {
+		display: none !important;
+	}
+
+	.rw-icon {
+		font-size: 2.5rem;
+		line-height: 1;
+		margin-bottom: 0.5rem;
+		filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.5));
+	}
+
+	.rw-logo {
+		margin: 0;
+		font-size: 2rem;
+		font-weight: 900;
+		letter-spacing: 0.2em;
+		color: var(--va-white);
+		text-transform: uppercase;
+	}
+
+	.rw-sub {
+		margin: 0;
+		font-size: 0.75rem;
+		letter-spacing: 0.25em;
+		color: var(--va-cyan);
+		text-transform: uppercase;
+	}
+
+	.rw-greeting {
+		margin: 1.2rem 0 0;
+		font-size: 1rem;
+		font-weight: 700;
+		color: var(--va-white);
+		letter-spacing: 0.06em;
+	}
+
+	.rw-hint {
+		margin: 0.15rem 0 0;
+		font-size: 0.7rem;
+		color: var(--va-text-dim);
+		letter-spacing: 0.04em;
+	}
+
 	.blog-list {
 		list-style: none;
 		padding: 0;
@@ -739,6 +803,10 @@ const matchedMenus = vaPosts
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
 		gap: 0.7rem;
+	}
+
+	.blog-list[hidden] {
+		display: none !important;
 	}
 
 	.blog-item {
@@ -993,7 +1061,6 @@ const matchedMenus = vaPosts
 		color: var(--va-orange);
 		cursor: pointer;
 		transition: 0.2s ease;
-		text-transform: uppercase;
 		font-weight: 700;
 	}
 
@@ -1118,7 +1185,7 @@ const matchedMenus = vaPosts
 		text-shadow: 0 0 6px rgba(255, 64, 129, 0.5);
 	}
 
-	/* ---- Footer decoration ---- */
+	/* ---- Footer decoration (commented out for future use) ----
 	.va-footer-dec {
 		margin-top: 1.5rem;
 		padding-top: 0.8rem;
@@ -1141,6 +1208,7 @@ const matchedMenus = vaPosts
 	.va-footer-dec span:hover {
 		color: var(--va-cyan);
 	}
+	*/
 
 	/* ======= Responsive ======= */
 	@media (max-width: 900px) {

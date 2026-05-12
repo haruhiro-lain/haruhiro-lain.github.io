@@ -1,9 +1,10 @@
 ---
 title: '调色板'
-description: '把调漆过程拆成可执行步骤：目标色分析、配色策略、校色迭代与记录复用，并结合本项目文章路由结构说明。'
+description: ''
 pubDate: '2026-04-19'
 heroImage: '../../../assets/blog-placeholder-1.jpg'
-tags: ['调漆', '配色', '方法论', '流程化']
+tags: ['调漆', '工具']
+top: true
 ---
 
 

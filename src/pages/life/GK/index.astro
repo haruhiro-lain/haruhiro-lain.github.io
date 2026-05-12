@@ -9,6 +9,8 @@ import { gkModelSelection } from '../../../data/gkModelSelection';
 import { paintStock } from '../../../data/paintStock';
 
 const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life'>) => post.id.startsWith('gk/'));
+const pinnedPosts = posts.filter((p) => p.data.top);
+const normalPosts = posts.filter((p) => !p.data.top);
 
 const paintStockByUsage = Array.from(
 	paintStock.reduce((groups, item) => {
@@ -133,9 +135,34 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 	<article class="gk-panel">
 		<section class="card-grid">
 			<section class="card card--blog">
-				{posts.length > 0 ? (
+				{pinnedPosts.length > 0 && (
+					<>
+						<h2 class="pinned-heading">📌 </h2>
+						<ul class="blog-list">
+							{pinnedPosts.map((post: CollectionEntry<'life'>) => (
+								<li class="blog-item">
+									<a href={`/life/GK/${post.id.slice('gk/'.length)}/`}>
+										<div class="blog-image">
+											<Image width={720} height={360} src={post.data.heroImage ?? FallbackImage} alt={post.data.title} />
+										</div>
+										<h3 class="blog-title">{post.data.title}</h3>
+										{post.data.tags.length > 0 && (
+											<ul class="blog-tags" aria-label="文章标签">
+												{post.data.tags.map((tag: string) => (
+													<li>#{tag}</li>
+												))}
+											</ul>
+										)}
+										<p class="blog-date"><FormattedDate date={post.data.pubDate} /></p>
+									</a>
+								</li>
+							))}
+						</ul>
+					</>
+				)}
+				{normalPosts.length > 0 ? (
 					<ul class="blog-list">
-						{posts.map((post: CollectionEntry<'life'>) => (
+						{normalPosts.map((post: CollectionEntry<'life'>) => (
 							<li class="blog-item">
 								<a href={`/life/GK/${post.id.slice('gk/'.length)}/`}>
 									<div class="blog-image">
@@ -420,6 +447,14 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 	.card {
 		padding: 0.85rem;
 		border-radius: 10px;
+	}
+
+	.pinned-heading {
+		margin: 0 0 1rem;
+		font-size: 0.9rem;
+		font-weight: 600;
+		letter-spacing: 0.06em;
+		color: var(--accent);
 	}
 
 	.card h2 {

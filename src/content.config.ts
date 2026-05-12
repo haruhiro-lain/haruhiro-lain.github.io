@@ -13,6 +13,7 @@ const baseSchema = ({ image }: { image: any }) =>
         heroImage: z.optional(image()),
         // 额外加个标签，以后做分类筛选会很方便
         tags: z.array(z.string()).optional().default([]),
+        top: z.boolean().optional().default(false),
     });
 
 // 2. 导出所有集合
