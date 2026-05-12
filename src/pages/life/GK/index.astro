@@ -182,7 +182,7 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 								</li>
 							))}
 						</ul>
-						<nav class="gk-pagination" id="gk-pagination" aria-label="分页导航">
+						<nav class="gk-pagination" id="gk-pagination" aria-label="分页导航" hidden>
 							<button id="gk-prev" class="gk-pagination-btn" type="button">上一页</button>
 							<span id="gk-page-info">1 / 1</span>
 							<button id="gk-next" class="gk-pagination-btn" type="button">下一页</button>
@@ -408,6 +408,8 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 
 		if (totalPages <= 1) {
 			pagination.hidden = true;
+		} else {
+			pagination.hidden = false;
 		}
 
 		const render = () => {
@@ -706,6 +708,10 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 		margin-top: 2rem;
 		padding-top: 1.5rem;
 		border-top: 1px solid var(--overlay-border);
+	}
+
+	.gk-pagination[hidden] {
+		display: none;
 	}
 
 	.gk-pagination-btn {

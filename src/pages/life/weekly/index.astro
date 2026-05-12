@@ -42,7 +42,7 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 						</li>
 					))}
 				</ul>
-				<nav class="post-pagination" id="post-pagination" aria-label="分页导航">
+				<nav class="post-pagination" id="post-pagination" aria-label="分页导航" hidden>
 					<button id="pagination-prev" class="pagination-btn" type="button">上一页</button>
 					<span id="pagination-info">1 / 1</span>
 					<button id="pagination-next" class="pagination-btn" type="button">下一页</button>
@@ -179,6 +179,10 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 		border-top: 1px solid var(--overlay-border);
 	}
 
+	.post-pagination[hidden] {
+		display: none;
+	}
+
 	.pagination-btn {
 		padding: 0.5rem 1.25rem;
 		font-size: 0.9rem;
@@ -235,6 +239,8 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 
 		if (totalPages <= 1) {
 			pagination.hidden = true;
+		} else {
+			pagination.hidden = false;
 		}
 
 		const render = () => {

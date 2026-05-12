@@ -48,7 +48,7 @@ const { title, posts, collection } = Astro.props as Props;
 						</li>
 					))}
 				</ul>
-				<nav class="section-pagination" id="section-pagination" aria-label="分页导航">
+				<nav class="section-pagination" id="section-pagination" aria-label="分页导航" hidden>
 					<button id="pagination-prev" class="pagination-btn" type="button">上一页</button>
 					<span id="pagination-info">1 / 1</span>
 					<button id="pagination-next" class="pagination-btn" type="button">下一页</button>
@@ -75,6 +75,8 @@ const { title, posts, collection } = Astro.props as Props;
 
 		if (totalPages <= 1) {
 			pagination.hidden = true;
+		} else {
+			pagination.hidden = false;
 		}
 
 		const render = () => {
@@ -215,6 +217,10 @@ const { title, posts, collection } = Astro.props as Props;
 		margin-top: 2rem;
 		padding-top: 1.5rem;
 		border-top: 1px solid var(--overlay-border);
+	}
+
+	.section-pagination[hidden] {
+		display: none;
 	}
 
 	.pagination-btn {
