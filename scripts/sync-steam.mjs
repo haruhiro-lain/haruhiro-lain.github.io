@@ -231,7 +231,7 @@ const requestBinary = (url) =>
 
 const requestHtmlViaPowerShell = (url) => {
 	if (process.platform !== 'win32') {
-		throw new Error('PowerShell fallback is only available on Windows');
+		throw new Error('PowerShell 回退方案仅适用于 Windows');
 	}
 
 	const command = `$resp = Invoke-WebRequest -Uri '${url}' -Headers @{'User-Agent'='Mozilla/5.0 (compatible; Astro-Blog personal site)'}; [Console]::OutputEncoding=[System.Text.Encoding]::UTF8; $resp.Content`;
@@ -254,7 +254,7 @@ const requestHtmlViaPowerShell = (url) => {
 
 const downloadImageViaPowerShell = (url, outputPath) => {
 	if (process.platform !== 'win32') {
-		throw new Error('PowerShell fallback is only available on Windows');
+		throw new Error('PowerShell 回退方案仅适用于 Windows');
 	}
 
 	const command = `Invoke-WebRequest -Uri '${url}' -Headers @{'User-Agent'='Mozilla/5.0 (compatible; Astro-Blog personal site)'} -OutFile '${outputPath}'`;
@@ -375,7 +375,7 @@ const fetchSteamProfile = async () => {
 				lastErrorMessage = '页面已返回但无可解析游戏数据';
 			}
 		} catch (error) {
-			lastErrorMessage = error instanceof Error ? error.message : 'unknown error';
+			lastErrorMessage = error instanceof Error ? error.message : '未知错误';
 		}
 
 		try {
@@ -400,7 +400,7 @@ const fetchSteamProfile = async () => {
 			}
 		} catch (error) {
 			if (!lastErrorMessage) {
-				lastErrorMessage = error instanceof Error ? error.message : 'unknown error';
+				lastErrorMessage = error instanceof Error ? error.message : '未知错误';
 			}
 		}
 
@@ -430,13 +430,13 @@ const fetchSteamProfile = async () => {
 	}
 
 	throw new Error(
-		`Unable to fetch usable data from public Steam pages. games: ${gamesPageResult.lastErrorMessage || 'unknown'}; profile: ${gamesResult.lastErrorMessage || 'unknown'}`,
+		`无法从 Steam 公开页获取可用数据。games: ${gamesPageResult.lastErrorMessage || '未知'}; profile: ${gamesResult.lastErrorMessage || '未知'}`,
 	);
 };
 
 const main = async () => {
 	try {
-		console.log('[sync-steam] Starting Steam recent games sync...');
+		console.log('[sync-steam] 开始同步 Steam 最近游戏数据...');
 		const { sourceType, sourceUrl, twoWeeks, games } = await fetchSteamProfile();
 		await cacheSteamGameImages(games);
 
@@ -459,17 +459,17 @@ const main = async () => {
 		const next = nextWithExistingFetchedAt === existing ? nextWithExistingFetchedAt : buildFileContent(payload);
 		if (existing !== next) {
 			writeFileSync(DATA_PATH, next, 'utf8');
-			console.log(`[sync-steam] Updated: ${DATA_PATH}`);
+			console.log(`[sync-steam] 已更新: ${DATA_PATH}`);
 		} else {
-			console.log('[sync-steam] No data changes.');
+			console.log('[sync-steam] 数据无变化。');
 		}
 
-		console.log(`[sync-steam] Source type: ${sourceType}`);
-		console.log(`[sync-steam] Source URL: ${sourceUrl}`);
-		console.log(`[sync-steam] Last two weeks total: ${payload.totalRecentTwoWeeksText || 'unknown'}`);
-		console.log(`[sync-steam] Recent games count: ${payload.games.length}`);
+		console.log(`[sync-steam] 数据来源类型: ${sourceType}`);
+		console.log(`[sync-steam] 数据来源 URL: ${sourceUrl}`);
+		console.log(`[sync-steam] 最近两周总时长: ${payload.totalRecentTwoWeeksText || '未知'}`);
+		console.log(`[sync-steam] 最近游戏数量: ${payload.games.length}`);
 	} catch (error) {
-		console.warn(`[sync-steam] Sync failed; keeping existing local data.${error instanceof Error ? ` ${error.message}` : ''}`);
+		console.warn(`[sync-steam] 同步失败，保留现有本地数据。${error instanceof Error ? ` ${error.message}` : ''}`);
 	}
 };
 

@@ -16,9 +16,13 @@ const toVAUppercaseHref = (id: string) => {
 	return `/life/${normalized}/`;
 };
 
-const vaPosts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life'>) =>
-	normalizePostId(post.id).toLowerCase().startsWith('va-11_hall-a/'),
-);
+const vaPosts = (await getSortedPosts('life'))
+	.filter((post: CollectionEntry<'life'>) =>
+		normalizePostId(post.id).toLowerCase().startsWith('va-11_hall-a/'),
+	)
+	.sort((a, b) => a.data.title.localeCompare(b.data.title, 'zh-Hans-CN', { sensitivity: 'base' }));
+
+const firstLetter = (title: string) => title.charAt(0).toUpperCase();
 
 const cabinetStock = [...cabinetStockList].sort(
 	(a, b) => b.recentDate.localeCompare(a.recentDate),
@@ -98,7 +102,7 @@ const matchedMenus = vaPosts
 				{vaPosts.length > 0 ? (
 					<ul class="blog-list" id="blog-list" hidden>
 						{vaPosts.map((post: CollectionEntry<'life'>) => (
-							<li class="blog-item" data-tags={JSON.stringify(post.data.tags || [])}>
+							<li class="blog-item" data-tags={JSON.stringify(post.data.tags || [])} data-first-letter={firstLetter(post.data.title)}>
 								<a href={toVAUppercaseHref(post.id)}>
 									<div class="blog-image">
 									<Image width={360} height={180} src={post.data.heroImage ?? FallbackImage} alt={post.data.title} />
@@ -109,6 +113,11 @@ const matchedMenus = vaPosts
 							</li>
 						))}
 					</ul>
+					<div class="blog-pagination" id="blog-pagination" hidden>
+						<button id="blog-prev" type="button">上一页</button>
+						<span id="blog-page-info">1 / 1</span>
+						<button id="blog-next" type="button">下一页</button>
+					</div>
 				) : (
 					<p class="sub">还没有配方记录，先去调一杯吧。</p>
 				)}
@@ -385,8 +394,12 @@ const matchedMenus = vaPosts
 
 	const initRecipeTabs = () => {
 		const tabs = document.querySelectorAll('.recipe-tab');
-		const blogItems = document.querySelectorAll<HTMLElement>('.blog-item');
+		const blogItems = Array.from(document.querySelectorAll<HTMLElement>('.blog-item'));
 		const blogList = document.getElementById('blog-list');
+		const blogPagination = document.getElementById('blog-pagination');
+		const blogPrev = document.getElementById('blog-prev');
+		const blogNext = document.getElementById('blog-next');
+		const blogPageInfo = document.getElementById('blog-page-info');
 		const recipeBody = document.querySelector('.recipe-body');
 		const welcome = document.getElementById('recipe-welcome');
 
@@ -398,14 +411,114 @@ const matchedMenus = vaPosts
 
 		const flavorTags = ['甜味', '酸味', '苦味', '辛辣', '发泡'];
 		const categoryTags = ['经典', '女性化', '男性化', '时尚', '宣传', '复古'];
+		const BLOG_PAGE_SIZE = 9;
+		let blogPage = 1;
+
+		const renderBlogPage = () => {
+			if (!blogPagination || !blogPrev || !blogNext || !blogPageInfo) return;
+			const visibleItems = blogItems.filter((item) => !item.hidden);
+			const totalPages = Math.max(1, Math.ceil(visibleItems.length / BLOG_PAGE_SIZE));
+			if (blogPage > totalPages) blogPage = totalPages;
+
+			const start = (blogPage - 1) * BLOG_PAGE_SIZE;
+			const end = start + BLOG_PAGE_SIZE;
+			let visibleIndex = 0;
+			blogItems.forEach((item) => {
+				if (item.hidden) return;
+				item.style.display = (visibleIndex >= start && visibleIndex < end) ? '' : 'none';
+				visibleIndex++;
+			});
+
+			blogPagination.hidden = totalPages <= 1;
+			blogPageInfo.textContent = `${blogPage} / ${totalPages}`;
+			(blogPrev as HTMLButtonElement).disabled = blogPage <= 1;
+			(blogNext as HTMLButtonElement).disabled = blogPage >= totalPages;
+		};
+
+		const resetBlogPage = () => { blogPage = 1; renderBlogPage(); };
+
+		if (blogPrev && blogNext) {
+			blogPrev.addEventListener('click', () => { if (blogPage > 1) { blogPage--; renderBlogPage(); } });
+			blogNext.addEventListener('click', () => { blogPage++; renderBlogPage(); });
+		}
 
 		const showAllBlogItems = () => {
 			blogList.hidden = false;
 			blogItems.forEach((item) => {
 				item.hidden = false;
+				item.style.display = '';
 			});
 			const sub = recipeBody.querySelector('.recipe-submenu');
 			if (sub) sub.remove();
+			resetBlogPage();
+		};
+
+		const showFirstLetterMenu = () => {
+			const letters = new Set<string>();
+			blogItems.forEach((item) => {
+				const letter = item.dataset.firstLetter;
+				if (letter) letters.add(letter);
+			});
+			const sortedLetters = Array.from(letters).sort();
+			const tags = sortedLetters;
+
+			blogList.hidden = false;
+			const existing = recipeBody.querySelector('.recipe-submenu');
+			if (existing) existing.remove();
+			blogItems.forEach((item) => {
+				item.hidden = false;
+				item.style.display = '';
+			});
+			resetBlogPage();
+
+			const subMenu = document.createElement('div');
+			subMenu.className = 'recipe-submenu';
+
+
+
+			const backBtn = document.createElement('button');
+			backBtn.type = 'button';
+			backBtn.className = 'recipe-submenu-back';
+			backBtn.textContent = '← 返回';
+			backBtn.addEventListener('click', () => {
+				showAllBlogItems();
+				tabs.forEach((t) => t.classList.remove('recipe-tab--active'));
+				tabs[0].classList.add('recipe-tab--active');
+			});
+			subMenu.appendChild(backBtn);
+
+			const list = document.createElement('ul');
+			list.className = 'recipe-submenu-list';
+
+			for (const tag of tags) {
+				const li = document.createElement('li');
+				const btn = document.createElement('button');
+				btn.type = 'button';
+				btn.className = 'recipe-submenu-btn';
+				btn.textContent = tag;
+				btn.addEventListener('click', () => {
+					const isActive = btn.dataset.active === 'true';
+					// deactivate all sibling buttons
+					list.querySelectorAll('.recipe-submenu-btn').forEach((b) => {
+						(b as HTMLElement).dataset.active = 'false';
+					});
+					if (isActive) {
+						// deselect: show all
+						blogItems.forEach((item) => { item.hidden = false; });
+					} else {
+						// select: filter by tag
+						btn.dataset.active = 'true';
+						blogItems.forEach((item) => {
+							item.hidden = item.dataset.firstLetter !== tag;
+						});
+					}
+				});
+				li.appendChild(btn);
+				list.appendChild(li);
+			}
+
+			subMenu.appendChild(list);
+			recipeBody.insertBefore(subMenu, blogList);
 		};
 
 		const showSubMenu = (tags: string[]) => {
@@ -413,8 +526,10 @@ const matchedMenus = vaPosts
 			const existing = recipeBody.querySelector('.recipe-submenu');
 			if (existing) existing.remove();
 			blogItems.forEach((item) => {
-				item.hidden = true;
+				item.hidden = false;
+				item.style.display = '';
 			});
+			resetBlogPage();
 
 			const subMenu = document.createElement('div');
 			subMenu.className = 'recipe-submenu';
@@ -440,10 +555,24 @@ const matchedMenus = vaPosts
 				btn.className = 'recipe-submenu-btn';
 				btn.textContent = tag;
 				btn.addEventListener('click', () => {
-					blogItems.forEach((item) => {
-						const itemTags: string[] = JSON.parse(item.dataset.tags || '[]');
-						item.hidden = !itemTags.includes(tag);
+					const isActive = btn.dataset.active === 'true';
+					// deactivate all sibling buttons
+					list.querySelectorAll('.recipe-submenu-btn').forEach((b) => {
+						(b as HTMLElement).dataset.active = 'false';
 					});
+					if (isActive) {
+						// deselect: show all
+						blogItems.forEach((item) => { item.hidden = false; item.style.display = ''; });
+						resetBlogPage();
+					} else {
+						// select: filter by tag
+						btn.dataset.active = 'true';
+						blogItems.forEach((item) => {
+							const itemTags: string[] = JSON.parse(item.dataset.tags || '[]');
+							item.hidden = !itemTags.includes(tag);
+						});
+						resetBlogPage();
+					}
 				});
 				li.appendChild(btn);
 				list.appendChild(li);
@@ -462,7 +591,7 @@ const matchedMenus = vaPosts
 				tab.classList.add('recipe-tab--active');
 
 				if (index === 0) {
-					showAllBlogItems();
+					showFirstLetterMenu();
 				} else if (index === 1) {
 					showSubMenu(flavorTags);
 				} else if (index === 2) {
@@ -736,6 +865,14 @@ const matchedMenus = vaPosts
 		text-shadow: 0 0 4px rgba(0, 229, 255, 0.3);
 	}
 
+	:global(.recipe-submenu-btn[data-active="true"]) {
+		border-color: var(--va-pink);
+		color: var(--va-pink);
+		background: rgba(255, 64, 129, 0.12);
+		box-shadow: 0 0 8px rgba(255, 64, 129, 0.3);
+		text-shadow: 0 0 4px rgba(255, 64, 129, 0.4);
+	}
+
 	.recipe-body {
 		padding: 0.8rem;
 		position: relative;
@@ -873,6 +1010,50 @@ const matchedMenus = vaPosts
 		font-size: 0.7rem;
 		color: var(--va-text-dim);
 		letter-spacing: 0.05em;
+	}
+
+	/* Blog pagination */
+	.blog-pagination {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 0.5rem;
+		margin-top: 1rem;
+		padding-top: 0.6rem;
+		border-top: 1px solid rgba(0, 229, 255, 0.12);
+	}
+
+	.blog-pagination[hidden] {
+		display: none !important;
+	}
+
+	.blog-pagination button {
+		font-size: 0.7rem;
+		letter-spacing: 0.04em;
+		padding: 0.25rem 0.6rem;
+		border: 1px solid rgba(0, 229, 255, 0.25);
+		background: rgba(0, 229, 255, 0.06);
+		color: var(--va-text);
+		cursor: pointer;
+		transition: 0.15s ease;
+	}
+
+	.blog-pagination button:hover:not(:disabled) {
+		border-color: var(--va-cyan);
+		color: var(--va-cyan);
+		background: rgba(0, 229, 255, 0.1);
+		box-shadow: 0 0 6px rgba(0, 229, 255, 0.2);
+	}
+
+	.blog-pagination button:disabled {
+		opacity: 0.35;
+		cursor: default;
+	}
+
+	.blog-pagination span {
+		font-size: 0.7rem;
+		color: var(--va-text-dim);
+		letter-spacing: 0.04em;
 	}
 
 	/* ======= RIGHT PANEL: Status / Inventory ======= */

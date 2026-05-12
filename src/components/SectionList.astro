@@ -18,40 +18,94 @@ const { title, posts, collection } = Astro.props as Props;
 	<h1 class="section-title">{title}</h1>
 	<section>
 		{posts.length > 0 ? (
-			<ul class="section-list">
-				{posts.map((post) => (
-					<li>
-						<a href={`/${collection}/${post.id}/`} class="section-card">
-							{post.data.heroImage ? (
-								<div class="section-card__cover">
-									<Image src={post.data.heroImage} alt="" />
-								</div>
-							) : (
-								<div class="section-card__cover">
-									<Image src={FallbackImage} alt="" />
-								</div>
-							)}
-							<div class="section-card__body">
-								<h2 class="section-card__title">{post.data.title}</h2>
-								{post.data.description && <p class="section-card__desc">{post.data.description}</p>}
-								{post.data.tags.length > 0 && (
-									<ul class="section-card__tags" aria-label="文章标签">
-										{post.data.tags.map((tag: string) => (
-											<li>#{tag.trim()}</li>
-										))}
-									</ul>
+			<>
+				<ul class="section-list" id="section-list">
+					{posts.map((post) => (
+						<li class="section-list__item">
+							<a href={`/${collection}/${post.id}/`} class="section-card">
+								{post.data.heroImage ? (
+									<div class="section-card__cover">
+										<Image src={post.data.heroImage} alt="" />
+									</div>
+								) : (
+									<div class="section-card__cover">
+										<Image src={FallbackImage} alt="" />
+									</div>
 								)}
-								<time class="section-card__date"><FormattedDate date={post.data.pubDate} /></time>
-							</div>
-						</a>
-					</li>
-				))}
-			</ul>
+								<div class="section-card__body">
+									<h2 class="section-card__title">{post.data.title}</h2>
+									{post.data.description && <p class="section-card__desc">{post.data.description}</p>}
+									{post.data.tags.length > 0 && (
+										<ul class="section-card__tags" aria-label="文章标签">
+											{post.data.tags.map((tag: string) => (
+												<li>#{tag.trim()}</li>
+											))}
+										</ul>
+									)}
+									<time class="section-card__date"><FormattedDate date={post.data.pubDate} /></time>
+								</div>
+							</a>
+						</li>
+					))}
+				</ul>
+				<nav class="section-pagination" id="section-pagination" aria-label="分页导航">
+					<button id="pagination-prev" class="pagination-btn" type="button">上一页</button>
+					<span id="pagination-info">1 / 1</span>
+					<button id="pagination-next" class="pagination-btn" type="button">下一页</button>
+				</nav>
+			</>
 		) : (
 			<p>该板块下暂无文章...</p>
 		)}
 	</section>
 </PageShell>
+
+<script>
+	const PAGE_SIZE = 12;
+	const list = document.getElementById('section-list');
+	const prevBtn = document.getElementById('pagination-prev') as HTMLButtonElement | null;
+	const nextBtn = document.getElementById('pagination-next') as HTMLButtonElement | null;
+	const info = document.getElementById('pagination-info');
+	const pagination = document.getElementById('section-pagination');
+
+	if (list && prevBtn && nextBtn && info && pagination) {
+		const items = list.querySelectorAll<HTMLElement>('.section-list__item');
+		const totalPages = Math.ceil(items.length / PAGE_SIZE);
+		let currentPage = 1;
+
+		if (totalPages <= 1) {
+			pagination.hidden = true;
+		}
+
+		const render = () => {
+			items.forEach((item, i) => {
+				const page = Math.floor(i / PAGE_SIZE) + 1;
+				item.hidden = page !== currentPage;
+			});
+			info.textContent = `${currentPage} / ${totalPages}`;
+			prevBtn.disabled = currentPage <= 1;
+			nextBtn.disabled = currentPage >= totalPages;
+		};
+
+		prevBtn.addEventListener('click', () => {
+			if (currentPage > 1) {
+				currentPage -= 1;
+				render();
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			}
+		});
+
+		nextBtn.addEventListener('click', () => {
+			if (currentPage < totalPages) {
+				currentPage += 1;
+				render();
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			}
+		});
+
+		render();
+	}
+</script>
 
 <style>
 	.section-title {
@@ -60,11 +114,15 @@ const { title, posts, collection } = Astro.props as Props;
 
 	.section-list {
 		display: grid;
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: repeat(3, 1fr);
 		gap: 1rem;
 		list-style-type: none;
 		margin: 0;
 		padding: 0;
+	}
+
+	.section-list__item[hidden] {
+		display: none;
 	}
 
 	.section-card {
@@ -149,7 +207,51 @@ const { title, posts, collection } = Astro.props as Props;
 		padding: 0.2rem 0.45rem;
 	}
 
-	@media (max-width: 720px) {
+	.section-pagination {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 2rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--overlay-border);
+	}
+
+	.pagination-btn {
+		padding: 0.5rem 1.25rem;
+		font-size: 0.9rem;
+		border: 1px solid var(--overlay-border);
+		border-radius: 8px;
+		background: var(--overlay-card);
+		color: rgb(var(--black));
+		cursor: pointer;
+		transition: background 0.2s, border-color 0.2s;
+	}
+
+	.pagination-btn:hover:not(:disabled) {
+		border-color: rgb(var(--accent));
+		color: rgb(var(--accent));
+	}
+
+	.pagination-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.pagination-info {
+		font-size: 0.9rem;
+		color: rgb(var(--gray));
+		min-width: 4rem;
+		text-align: center;
+	}
+
+	@media (max-width: 900px) {
+		.section-list {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+
+	@media (max-width: 580px) {
 		.section-list {
 			grid-template-columns: 1fr;
 		}

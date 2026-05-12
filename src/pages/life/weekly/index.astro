@@ -15,9 +15,9 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 		<p class="page-desc">（并非）每周更新复盘，能做的事没那么多，不陷入内耗就算成功了说是...</p>
 		{posts.length > 0 ? (
 			<section>
-				<ul class="post-grid">
+				<ul class="post-grid" id="post-grid">
 					{posts.map((post: CollectionEntry<'life'>) => (
-						<li>
+						<li class="post-grid__item">
 							<a href={`/life/weekly/${post.id.slice('weekly/'.length)}/`} class="post-card">
 								{post.data.heroImage && (
 									<div class="post-card__cover">
@@ -42,6 +42,11 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 						</li>
 					))}
 				</ul>
+				<nav class="post-pagination" id="post-pagination" aria-label="分页导航">
+					<button id="pagination-prev" class="pagination-btn" type="button">上一页</button>
+					<span id="pagination-info">1 / 1</span>
+					<button id="pagination-next" class="pagination-btn" type="button">下一页</button>
+				</nav>
 			</section>
 		) : (
 			<p class="empty-indicator">周掸暂时还没有文章。</p>
@@ -70,8 +75,12 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 		margin: 0;
 		padding: 0;
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		grid-template-columns: repeat(3, 1fr);
 		gap: 1.5rem;
+	}
+
+	.post-grid__item[hidden] {
+		display: none;
 	}
 
 	.post-card {
@@ -159,4 +168,101 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 		border-radius: 999px;
 		padding: 0.2rem 0.45rem;
 	}
+
+	.post-pagination {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 2rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--overlay-border);
+	}
+
+	.pagination-btn {
+		padding: 0.5rem 1.25rem;
+		font-size: 0.9rem;
+		border: 1px solid var(--overlay-border);
+		border-radius: 8px;
+		background: var(--overlay-card);
+		color: rgb(var(--black));
+		cursor: pointer;
+		transition: background 0.2s, border-color 0.2s;
+	}
+
+	.pagination-btn:hover:not(:disabled) {
+		border-color: rgb(var(--accent));
+		color: rgb(var(--accent));
+	}
+
+	.pagination-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.pagination-info {
+		font-size: 0.9rem;
+		color: rgb(var(--gray));
+		min-width: 4rem;
+		text-align: center;
+	}
+
+	@media (max-width: 900px) {
+		.post-grid {
+			grid-template-columns: repeat(2, 1fr);
+		}
+	}
+
+	@media (max-width: 580px) {
+		.post-grid {
+			grid-template-columns: 1fr;
+		}
+	}
 </style>
+
+<script>
+	const PAGE_SIZE = 12;
+	const list = document.getElementById('post-grid');
+	const prevBtn = document.getElementById('pagination-prev') as HTMLButtonElement | null;
+	const nextBtn = document.getElementById('pagination-next') as HTMLButtonElement | null;
+	const info = document.getElementById('pagination-info');
+	const pagination = document.getElementById('post-pagination');
+
+	if (list && prevBtn && nextBtn && info && pagination) {
+		const items = list.querySelectorAll<HTMLElement>('.post-grid__item');
+		const totalPages = Math.ceil(items.length / PAGE_SIZE);
+		let currentPage = 1;
+
+		if (totalPages <= 1) {
+			pagination.hidden = true;
+		}
+
+		const render = () => {
+			items.forEach((item, i) => {
+				const page = Math.floor(i / PAGE_SIZE) + 1;
+				item.hidden = page !== currentPage;
+			});
+			info.textContent = `${currentPage} / ${totalPages}`;
+			prevBtn.disabled = currentPage <= 1;
+			nextBtn.disabled = currentPage >= totalPages;
+		};
+
+		prevBtn.addEventListener('click', () => {
+			if (currentPage > 1) {
+				currentPage -= 1;
+				render();
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			}
+		});
+
+		nextBtn.addEventListener('click', () => {
+			if (currentPage < totalPages) {
+				currentPage += 1;
+				render();
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			}
+		});
+
+		render();
+	}
+</script>

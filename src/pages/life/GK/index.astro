@@ -136,11 +136,35 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 		<section class="card-grid">
 			<section class="card card--blog">
 				{pinnedPosts.length > 0 && (
+					<h2 class="pinned-heading" id="pinned-heading">📌 </h2>
+				)}
+				{posts.length > 0 ? (
 					<>
-						<h2 class="pinned-heading">📌 </h2>
-						<ul class="blog-list">
+						<ul class="blog-list" id="gk-blog-list">
 							{pinnedPosts.map((post: CollectionEntry<'life'>) => (
-								<li class="blog-item">
+								<li class="blog-item" data-pinned="true">
+									<a href={`/life/GK/${post.id.slice('gk/'.length)}/`}>
+										<div class="blog-image">
+											<Image width={720} height={360} src={post.data.heroImage ?? FallbackImage} alt={post.data.title} />
+										</div>
+										<h3 class="blog-title">{post.data.title}</h3>
+										{post.data.tags.length > 0 && (
+											<ul class="blog-tags" aria-label="文章标签">
+												{post.data.tags.map((tag: string) => (
+													<li>#{tag}</li>
+												))}
+											</ul>
+										)}
+										<p class="blog-date"><FormattedDate date={post.data.pubDate} /></p>
+									</a>
+								</li>
+							))}
+							{pinnedPosts.length > 0 && normalPosts.length > 0 && (
+								<li class="blog-break" aria-hidden="true"></li>
+							)}
+
+							{normalPosts.map((post: CollectionEntry<'life'>) => (
+								<li class="blog-item" data-pinned="false">
 									<a href={`/life/GK/${post.id.slice('gk/'.length)}/`}>
 										<div class="blog-image">
 											<Image width={720} height={360} src={post.data.heroImage ?? FallbackImage} alt={post.data.title} />
@@ -158,29 +182,12 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 								</li>
 							))}
 						</ul>
+						<nav class="gk-pagination" id="gk-pagination" aria-label="分页导航">
+							<button id="gk-prev" class="gk-pagination-btn" type="button">上一页</button>
+							<span id="gk-page-info">1 / 1</span>
+							<button id="gk-next" class="gk-pagination-btn" type="button">下一页</button>
+						</nav>
 					</>
-				)}
-				{normalPosts.length > 0 ? (
-					<ul class="blog-list">
-						{normalPosts.map((post: CollectionEntry<'life'>) => (
-							<li class="blog-item">
-								<a href={`/life/GK/${post.id.slice('gk/'.length)}/`}>
-									<div class="blog-image">
-										<Image width={720} height={360} src={post.data.heroImage ?? FallbackImage} alt={post.data.title} />
-									</div>
-									<h3 class="blog-title">{post.data.title}</h3>
-									{post.data.tags.length > 0 && (
-										<ul class="blog-tags" aria-label="文章标签">
-											{post.data.tags.map((tag: string) => (
-												<li>#{tag}</li>
-											))}
-										</ul>
-									)}
-									<p class="blog-date"><FormattedDate date={post.data.pubDate} /></p>
-								</a>
-							</li>
-						))}
-					</ul>
 				) : (
 					<p class="sub">喷漆间暂时还没有文章。</p>
 				)}
@@ -369,6 +376,90 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 	});
 	initSidebarToggles();
 	initStockUsageToggles();
+
+	// Blog post pagination
+	// Page 1: pinned always shown + non-pinned fill to 12 total (4 rows × 3 columns)
+	// Page 2+: non-pinned 12 per page
+	const initBlogPagination = () => {
+		const PAGE_SIZE = 12;
+		const list = document.getElementById('gk-blog-list');
+		const prevBtn = document.getElementById('gk-prev') as HTMLButtonElement | null;
+		const nextBtn = document.getElementById('gk-next') as HTMLButtonElement | null;
+		const info = document.getElementById('gk-page-info');
+		const pagination = document.getElementById('gk-pagination');
+		const pinnedHeading = document.getElementById('pinned-heading');
+
+		if (!list || !prevBtn || !nextBtn || !info || !pagination) return;
+
+		const allChildren = Array.from(list.children) as HTMLElement[];
+		const pinnedItems = allChildren.filter((el) => el.getAttribute('data-pinned') === 'true');
+		const normalItems = allChildren.filter((el) => el.getAttribute('data-pinned') === 'false');
+		const breakEl = allChildren.find((el) => el.classList.contains('blog-break')) ?? null;
+
+		// Page 1: 4 rows total. Pinned posts occupy ceil(pinned/3) rows;
+		// non-pinned fill the remaining rows: (4 - pinnedRows) * 3 items
+		const COLS = 3;
+		const MAX_ROWS = 4;
+		const pinnedRows = Math.ceil(pinnedItems.length / COLS);
+		const normalSlotsOnPage1 = Math.max(0, (MAX_ROWS - pinnedRows) * COLS);
+		const remainingNormal = Math.max(0, normalItems.length - normalSlotsOnPage1);
+		const totalPages = 1 + Math.ceil(remainingNormal / PAGE_SIZE);
+		let currentPage = 1;
+
+		if (totalPages <= 1) {
+			pagination.hidden = true;
+		}
+
+		const render = () => {
+			// Pinned items always visible
+			pinnedItems.forEach((item) => { item.hidden = false; });
+
+			normalItems.forEach((item, i) => {
+				if (currentPage === 1) {
+					// Page 1: show first normalSlotsOnPage1 non-pinned posts
+					item.hidden = i >= normalSlotsOnPage1;
+				} else {
+					const startIdx = normalSlotsOnPage1 + (currentPage - 2) * PAGE_SIZE;
+					const endIdx = startIdx + PAGE_SIZE;
+					item.hidden = i < startIdx || i >= endIdx;
+				}
+			});
+
+			// 📌 heading: always visible if pinned items exist
+			if (pinnedHeading) {
+				pinnedHeading.hidden = pinnedItems.length === 0;
+			}
+
+			// Break line: visible when pinned items exist
+			if (breakEl) {
+				breakEl.hidden = pinnedItems.length === 0;
+			}
+
+			info.textContent = `${currentPage} / ${totalPages}`;
+			prevBtn.disabled = currentPage <= 1;
+			nextBtn.disabled = currentPage >= totalPages;
+		};
+
+		prevBtn.addEventListener('click', () => {
+			if (currentPage > 1) {
+				currentPage -= 1;
+				render();
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			}
+		});
+
+		nextBtn.addEventListener('click', () => {
+			if (currentPage < totalPages) {
+				currentPage += 1;
+				render();
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			}
+		});
+
+		render();
+	};
+
+	initBlogPagination();
 </script>
 
 <style>
@@ -521,10 +612,29 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 		gap: 2rem;
 	}
 
+	.blog-list::after {
+		content: '';
+		flex: auto;
+	}
+
 	.blog-item {
-		width: calc(50% - 1rem);
+		width: calc(33.333% - 1.333rem);
 		display: flex;
 		flex-direction: column;
+	}
+
+	.blog-item[hidden] {
+		display: none;
+	}
+
+	.blog-break {
+		flex-basis: 100%;
+		width: 100%;
+		height: 0;
+		margin: 0.25rem 0 1rem;
+		padding: 0;
+		list-style: none;
+		border-top: 1px solid var(--overlay-border);
 	}
 
 	.blog-item a {
@@ -586,6 +696,44 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 		border: 1px solid var(--overlay-border);
 		border-radius: 999px;
 		padding: 0.2rem 0.45rem;
+	}
+
+	.gk-pagination {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 2rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid var(--overlay-border);
+	}
+
+	.gk-pagination-btn {
+		padding: 0.5rem 1.25rem;
+		font-size: 0.9rem;
+		border: 1px solid var(--overlay-border);
+		border-radius: 8px;
+		background: var(--overlay-card);
+		color: rgb(var(--black));
+		cursor: pointer;
+		transition: background 0.2s, border-color 0.2s;
+	}
+
+	.gk-pagination-btn:hover:not(:disabled) {
+		border-color: rgb(var(--accent));
+		color: rgb(var(--accent));
+	}
+
+	.gk-pagination-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	#gk-page-info {
+		font-size: 0.9rem;
+		color: rgb(var(--gray));
+		min-width: 4rem;
+		text-align: center;
 	}
 
 	.stock-list {
@@ -774,6 +922,10 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 			display: grid;
 			grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 		}
+
+		.blog-item {
+			width: calc(50% - 1rem);
+		}
 	}
 
 	@media (max-width: 600px) {
@@ -783,6 +935,10 @@ const displayModelBacklog = gkModelSelection.maxVisible > 0
 
 		.blog-list {
 			gap: 1.5rem;
+		}
+
+		.blog-item {
+			width: 100%;
 		}
 	}
 </style>

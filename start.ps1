@@ -7,5 +7,5 @@ $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 [Console]::OutputEncoding = $utf8NoBom
 $OutputEncoding = $utf8NoBom
 
-& node (Join-Path $projectRoot "scripts\dev-with-sync.mjs")
+& node (Join-Path $projectRoot "scripts\dev-with-sync.mjs") @args
 exit $LASTEXITCODE
