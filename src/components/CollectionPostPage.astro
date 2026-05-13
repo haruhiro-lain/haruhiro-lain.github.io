@@ -3,11 +3,18 @@ import { render, type CollectionEntry } from 'astro:content';
 import BlogPost from '../layouts/BlogPost.astro';
 import type { ContentCollection } from '../utils/content';
 
-type Props = {
-	post: CollectionEntry<ContentCollection>;
+type PostLink = {
+	title: string;
+	href: string;
 };
 
-const { post } = Astro.props as Props;
+type Props = {
+	post: CollectionEntry<ContentCollection>;
+	prevPost?: PostLink;
+	nextPost?: PostLink;
+};
+
+const { post, prevPost, nextPost } = Astro.props as Props;
 const { Content, headings } = await render(post);
 const entryPathSegments = post.id.split('/');
 entryPathSegments.pop();
@@ -20,6 +27,8 @@ const entryBaseDir = `../content/${post.collection}/${entryPathSegments.length >
 	entryCollection={post.collection}
 	entryId={post.id}
 	entryBaseDir={entryBaseDir}
+	prevPost={prevPost}
+	nextPost={nextPost}
 >
 	<Content />
 </BlogPost>

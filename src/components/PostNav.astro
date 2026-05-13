@@ -1,0 +1,42 @@
+---
+type PostLink = {
+	title: string;
+	href: string;
+};
+
+type Props = {
+	prevPost?: PostLink;
+	nextPost?: PostLink;
+};
+
+const { prevPost, nextPost } = Astro.props as Props;
+---
+
+{
+	(prevPost || nextPost) && (
+		<nav class="post-nav" aria-label="文章导航">
+			<div class="post-nav__inner">
+				{prevPost ? (
+					<a href={prevPost.href} class="post-nav__link post-nav__link--prev" title={prevPost.title}>
+					<svg class="post-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<polyline points="15 18 9 12 15 6"></polyline>
+						</svg>
+						<span class="post-nav__label">{prevPost.title}</span>
+					</a>
+				) : (
+					<span class="post-nav__link post-nav__link--prev post-nav__link--disabled" aria-hidden="true" />
+				)}
+				{nextPost ? (
+					<a href={nextPost.href} class="post-nav__link post-nav__link--next" title={nextPost.title}>
+						<span class="post-nav__label">{nextPost.title}</span>
+					<svg class="post-nav__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<polyline points="9 18 15 12 9 6"></polyline>
+						</svg>
+					</a>
+				) : (
+					<span class="post-nav__link post-nav__link--next post-nav__link--disabled" aria-hidden="true" />
+				)}
+			</div>
+		</nav>
+	)
+}

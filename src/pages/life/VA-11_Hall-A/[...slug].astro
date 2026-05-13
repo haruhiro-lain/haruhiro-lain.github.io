@@ -1,7 +1,7 @@
 ---
 import type { CollectionEntry } from 'astro:content';
 import CollectionPostPage from '../../../components/CollectionPostPage.astro';
-import { getSectionStaticPaths } from '../../../utils/content';
+import { getSectionStaticPaths, getSortedPosts } from '../../../utils/content';
 
 export async function getStaticPaths() {
 	return getSectionStaticPaths('life', 'va-11_hall-a');
@@ -10,9 +10,27 @@ export async function getStaticPaths() {
 type Props = CollectionEntry<'life'>;
 
 const post = Astro.props as Props;
+
+const normalizeId = (id: string) => id.replaceAll('\\', '/');
+
+const allVAPosts = (await getSortedPosts('life'))
+	.filter((p) => normalizeId(p.id).toLowerCase().startsWith('va-11_hall-a/'));
+
+const currentIndex = allVAPosts.findIndex((p) => p.id === post.id);
+const prevPost = currentIndex > 0 ? allVAPosts[currentIndex - 1] : undefined;
+const nextPost = currentIndex < allVAPosts.length - 1 ? allVAPosts[currentIndex + 1] : undefined;
+
+const toPostLink = (p: CollectionEntry<'life'>) => ({
+	title: p.data.title,
+	href: `/life/VA-11_Hall-A/${normalizeId(p.id).slice('va-11_hall-a/'.length)}/`,
+});
 ---
 
-<CollectionPostPage post={post} />
+<CollectionPostPage
+	post={post}
+	prevPost={prevPost ? toPostLink(prevPost) : undefined}
+	nextPost={nextPost ? toPostLink(nextPost) : undefined}
+/>
 
 <script>
 	// Lock theme to dark on VA-11 Hall-A article pages, restore on leave

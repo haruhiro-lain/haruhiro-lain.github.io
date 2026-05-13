@@ -2,7 +2,13 @@
 import { Image } from 'astro:assets';
 import type { MarkdownHeading } from 'astro';
 import FormattedDate from '../components/FormattedDate.astro';
+import PostNav from '../components/PostNav.astro';
 import PageShell from './PageShell.astro';
+
+type PostLink = {
+	title: string;
+	href: string;
+};
 
 type Props = {
 	title?: string;
@@ -15,6 +21,8 @@ type Props = {
 	entryCollection?: string;
 	entryId?: string;
 	entryBaseDir?: string;
+	prevPost?: PostLink;
+	nextPost?: PostLink;
 };
 
 const {
@@ -27,6 +35,8 @@ const {
 	entryCollection,
 	entryId,
 	entryBaseDir,
+	prevPost,
+	nextPost,
 } = Astro.props as Props;
 const outlineHeadings = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 3);
 const contentImageModules = import.meta.glob('../content/**/*.{png,jpg,jpeg,webp,avif,gif,svg}', {
@@ -35,6 +45,36 @@ const contentImageModules = import.meta.glob('../content/**/*.{png,jpg,jpeg,webp
 	query: '?url',
 });
 const contentImageUrlMap = contentImageModules as Record<string, string>;
+
+function resolveHeroImage(raw: unknown): { resolved: string; isImageMeta: boolean } | undefined {
+	// Astro image() schema returns ImageMetadata object with .src
+	if (raw && typeof raw === 'object' && 'src' in (raw as Record<string, unknown>)) {
+		return { resolved: (raw as Record<string, string>).src, isImageMeta: true };
+	}
+	if (typeof raw !== 'string') return undefined;
+	const normalized = raw.replaceAll('\\', '/');
+	const normalizedBaseDir = (entryBaseDir ?? '').endsWith('/') ? entryBaseDir! : `${entryBaseDir ?? ''}/`;
+	let relativeKey: string;
+	if (normalized.startsWith('./')) {
+		relativeKey = `${normalizedBaseDir}${normalized.slice(2)}`;
+	} else if (normalized.startsWith('../')) {
+		const srcSegs = normalized.split('/');
+		const baseSegs = normalizedBaseDir.split('/').filter(Boolean);
+		while (srcSegs[0] === '..') {
+			srcSegs.shift();
+			if (baseSegs.length > 0) baseSegs.pop();
+		}
+		relativeKey = `../${[...baseSegs, ...srcSegs].join('/')}`;
+	} else {
+		relativeKey = `${normalizedBaseDir}${normalized}`;
+	}
+	const lowerKey = relativeKey.toLowerCase();
+	for (const [k, v] of Object.entries(contentImageUrlMap)) {
+		if (k.toLowerCase() === lowerKey) return { resolved: v, isImageMeta: false };
+	}
+	return undefined;
+}
+const heroImageResult = resolveHeroImage(heroImage);
 
 const isVA11HallA = entryCollection === 'life' && entryId?.replaceAll('\\', '/').toLowerCase().startsWith('va-11_hall-a/');
 ---
@@ -63,7 +103,10 @@ const isVA11HallA = entryCollection === 'life' && entryId?.replaceAll('\\', '/')
 		}
 		<div class="post-content">
 			<div class="hero-image">
-				{heroImage && <Image width={1020} height={510} src={heroImage} alt="" />}
+				{heroImageResult && heroImageResult.isImageMeta
+					? <Image width={1020} height={510} src={heroImage} alt="" />
+					: heroImageResult && <Image width={1020} height={510} src={heroImageResult.resolved} alt="" />
+				}
 			</div>
 			<div
 				class="prose"
@@ -92,6 +135,7 @@ const isVA11HallA = entryCollection === 'life' && entryId?.replaceAll('\\', '/')
 				<slot />
 			</div>
 		</div>
+		<PostNav prevPost={prevPost} nextPost={nextPost} />
 	</article>
 
 	<script id="content-image-url-map" type="application/json" is:inline set:html={JSON.stringify(contentImageUrlMap)}></script>

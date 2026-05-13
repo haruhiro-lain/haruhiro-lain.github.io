@@ -1,0 +1,119 @@
+---
+import FormattedDate from '../components/FormattedDate.astro';
+import PageShell from '../layouts/PageShell.astro';
+import { getSortedPosts } from '../utils/content';
+
+const posts = await getSortedPosts('learning');
+
+// 按年分组
+const groupedByYear = new Map<number, typeof posts>();
+for (const post of posts) {
+	const year = post.data.pubDate.getFullYear();
+	if (!groupedByYear.has(year)) {
+		groupedByYear.set(year, []);
+	}
+	groupedByYear.get(year)!.push(post);
+}
+
+const years = Array.from(groupedByYear.keys()).sort((a, b) => b - a);
+---
+
+<PageShell title="归档">
+	<main>
+		<h1 class="page-title">归档</h1>
+		<p class="archive-subtitle">仅收录「笔记」分类下的文章</p>
+
+		{
+			years.map((year) => (
+				<section class="archive-year">
+					<h2 class="archive-year__heading">{year}</h2>
+					<ul class="archive-year__list">
+						{groupedByYear.get(year)!.map((post) => {
+							const month = String(post.data.pubDate.getMonth() + 1).padStart(2, '0');
+							const day = String(post.data.pubDate.getDate()).padStart(2, '0');
+							return (
+								<li class="archive-item">
+									<a href={`/learning/${post.id}/`} class="archive-item__link">
+										<span class="archive-item__date">{month}-{day}</span>
+										<span class="archive-item__title">{post.data.title}</span>
+									</a>
+								</li>
+							);
+						})}
+					</ul>
+				</section>
+			))
+		}
+	</main>
+</PageShell>
+
+<style>
+	.page-title {
+		margin-bottom: 0.3rem;
+	}
+
+	.archive-subtitle {
+		color: rgb(var(--gray));
+		font-size: 0.95rem;
+		margin: 0 0 2rem 0;
+	}
+
+	.archive-year {
+		margin-bottom: 2.5rem;
+	}
+
+	.archive-year__heading {
+		font-size: 1.6rem;
+		margin-bottom: 0.8rem;
+		padding-bottom: 0.3rem;
+		border-bottom: 1px solid var(--overlay-border);
+	}
+
+	.archive-year__list {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.archive-item__link {
+		display: flex;
+		align-items: baseline;
+		gap: 1rem;
+		text-decoration: none;
+		color: rgb(var(--gray-dark));
+		padding: 0.35rem 0.5rem;
+		border-radius: 6px;
+		transition: background 0.15s, color 0.15s;
+	}
+
+	.archive-item__link:hover {
+		background: var(--overlay-card);
+		color: var(--accent);
+	}
+
+	.archive-item__date {
+		flex-shrink: 0;
+		font-size: 0.85rem;
+		color: rgb(var(--gray));
+		font-variant-numeric: tabular-nums;
+		min-width: 3.5em;
+	}
+
+	.archive-item__title {
+		font-size: 1rem;
+	}
+
+	@media (max-width: 720px) {
+		.archive-item__link {
+			flex-direction: column;
+			gap: 0.15rem;
+		}
+
+		.archive-item__date {
+			font-size: 0.8rem;
+		}
+	}
+</style>
