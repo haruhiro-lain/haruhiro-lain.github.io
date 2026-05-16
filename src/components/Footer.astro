@@ -29,6 +29,7 @@ const yearText = currentYear <= SITE_START_YEAR ? `${SITE_START_YEAR}` : `${SITE
 		<button id="outline-toggle" class="floating-btn" type="button" aria-label="展开侧边栏" aria-pressed="false">≡</button>
 		<button id="scroll-top" class="floating-btn" type="button" aria-label="回到顶部">↑</button>
 		<button id="theme-toggle" class="floating-btn theme-toggle" type="button" aria-label="切换主题">🌙</button>
+		<button id="focus-mode-toggle" class="floating-btn" type="button" aria-label="专注模式已开启" aria-pressed="true">📚</button>
 	</div>
 </footer>
 
@@ -97,6 +98,37 @@ const yearText = currentYear <= SITE_START_YEAR ? `${SITE_START_YEAR}` : `${SITE
 				return;
 			}
 			updateOutlineButtonState(event.detail?.locked === true);
+		});
+	}
+
+	const FOCUS_STORAGE_KEY = 'focus-mode';
+
+	const getFocusMode = () => {
+		const saved = localStorage.getItem(FOCUS_STORAGE_KEY);
+		return saved === 'off' ? 'off' : 'on';
+	};
+
+	const applyFocusMode = (mode) => {
+		document.documentElement.setAttribute('data-focus-mode', mode);
+		const focusBtn = document.getElementById('focus-mode-toggle');
+		if (focusBtn) {
+			const isOn = mode === 'on';
+			focusBtn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+			focusBtn.setAttribute('aria-label', isOn ? '专注模式已开启' : '专注模式已关闭');
+			focusBtn.textContent = isOn ? '\uD83D\uDCDA' : '\uD83C\uDFAE';
+		}
+	};
+
+	const initialFocusMode = getFocusMode();
+	applyFocusMode(initialFocusMode);
+
+	const focusToggleBtn = document.getElementById('focus-mode-toggle');
+	if (focusToggleBtn) {
+		focusToggleBtn.addEventListener('click', () => {
+			const current = document.documentElement.getAttribute('data-focus-mode') === 'on' ? 'on' : 'off';
+			const next = current === 'on' ? 'off' : 'on';
+			applyFocusMode(next);
+			localStorage.setItem(FOCUS_STORAGE_KEY, next);
 		});
 	}
 </script>

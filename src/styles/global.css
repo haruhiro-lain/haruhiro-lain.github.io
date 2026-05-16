@@ -311,3 +311,10 @@ header nav,
 		text-align: left;
 	}
 }
+
+/* ── 专注模式：默认隐藏非学习内容 ── */
+html[data-focus-mode='on'] .home-section--life,
+html[data-focus-mode='on'] .home-section--steam,
+html[data-focus-mode='on'] .nav-item--life {
+	display: none;
+}

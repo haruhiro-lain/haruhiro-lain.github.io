@@ -1,12 +1,12 @@
 ---
 import PageShell from '../layouts/PageShell.astro';
 import FormattedDate from '../components/FormattedDate.astro';
-import { getRecentPostsWithCanonical, getRecentSectionPostsWithCanonical } from '../utils/content';
+import { getRecentPostsWithCanonical } from '../utils/content';
 import HomeBannerContent from '../data/home.md';
 import RecentScheduleContent from '../data/recentSchedule.md';
 import { steamRecentGamesData } from '../data/steamRecentGames';
 
-const recentBlogPosts = await getRecentSectionPostsWithCanonical('learning', 'others', 4);
+const recentBlogPosts = await getRecentPostsWithCanonical('learning', 2);
 const recentLifePosts = await getRecentPostsWithCanonical('life', 2, {
 	gk: 'GK',
 	'va-11_hall-a': 'VA-11_Hall-A',
@@ -118,7 +118,7 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 		</ul>
 	</section>
 
-	<section class="home-section">
+	<section class="home-section home-section--life">
 		<div class="home-section__head">
 			<h2>近期动态</h2>
 			<a href="/life">查看更多</a>

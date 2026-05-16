@@ -21,26 +21,23 @@ const years = Array.from(groupedByYear.keys()).sort((a, b) => b - a);
 <PageShell title="归档">
 	<main>
 		<h1 class="page-title">归档</h1>
-		<p class="archive-subtitle">仅收录「笔记」分类下的文章</p>
 
 		{
 			years.map((year) => (
 				<section class="archive-year">
 					<h2 class="archive-year__heading">{year}</h2>
-					<ul class="archive-year__list">
+					<div class="archive-year__list">
 						{groupedByYear.get(year)!.map((post) => {
 							const month = String(post.data.pubDate.getMonth() + 1).padStart(2, '0');
 							const day = String(post.data.pubDate.getDate()).padStart(2, '0');
 							return (
-								<li class="archive-item">
-									<a href={`/learning/${post.id}/`} class="archive-item__link">
-										<span class="archive-item__date">{month}-{day}</span>
-										<span class="archive-item__title">{post.data.title}</span>
-									</a>
-								</li>
+								<a href={`/learning/${post.id}/`} class="archive-item">
+									<span class="archive-item__date">{month}-{day}</span>
+									<span class="archive-item__title">{post.data.title}</span>
+								</a>
 							);
 						})}
-					</ul>
+					</div>
 				</section>
 			))
 		}
@@ -52,45 +49,92 @@ const years = Array.from(groupedByYear.keys()).sort((a, b) => b - a);
 		margin-bottom: 0.3rem;
 	}
 
-	.archive-subtitle {
-		color: rgb(var(--gray));
-		font-size: 0.95rem;
-		margin: 0 0 2rem 0;
-	}
-
 	.archive-year {
 		margin-bottom: 2.5rem;
+		position: relative;
 	}
 
+	/* 年份标题 + 左侧时间线装饰 */
 	.archive-year__heading {
-		font-size: 1.6rem;
-		margin-bottom: 0.8rem;
-		padding-bottom: 0.3rem;
-		border-bottom: 1px solid var(--overlay-border);
+		font-size: 1.5rem;
+		margin-bottom: 0.6rem;
+		padding-left: 1.25rem;
+		position: relative;
+	}
+
+	.archive-year__heading::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 0.1em;
+		bottom: 0.1em;
+		width: 4px;
+		background: var(--accent);
+		border-radius: 2px;
 	}
 
 	.archive-year__list {
-		list-style: none;
 		padding: 0;
 		margin: 0;
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
 	}
 
-	.archive-item__link {
+	.archive-item {
 		display: flex;
 		align-items: baseline;
-		gap: 1rem;
+		gap: 0.6rem;
 		text-decoration: none;
 		color: rgb(var(--gray-dark));
-		padding: 0.35rem 0.5rem;
-		border-radius: 6px;
-		transition: background 0.15s, color 0.15s;
+		padding: 0.35rem 0 0.35rem 1.25rem;
+		border-radius: 4px;
+		transition: color 0.15s;
+		position: relative;
 	}
 
-	.archive-item__link:hover {
-		background: var(--overlay-card);
+	/* 时间线竖线 */
+	.archive-item::before {
+		content: '';
+		position: absolute;
+		left: 1px;
+		top: 0;
+		bottom: 0;
+		width: 2px;
+		background: rgb(var(--gray-light));
+		opacity: 0.3;
+	}
+
+	.archive-item:first-child::before {
+		top: 0.5em;
+	}
+
+	.archive-item:last-child::before {
+		bottom: auto;
+		height: 0.5em;
+	}
+
+	/* 时间线圆点 */
+	.archive-item::after {
+		content: '';
+		position: absolute;
+		left: -3px;
+		top: 0.6em;
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: rgb(var(--gray-light));
+		border: 2px solid rgb(var(--gray-light));
+		opacity: 0.5;
+		transition: opacity 0.15s, background 0.15s, border-color 0.15s;
+	}
+
+	.archive-item:hover::after {
+		opacity: 1;
+		background: var(--accent);
+		border-color: var(--accent);
+	}
+
+	.archive-item:hover {
 		color: var(--accent);
 	}
 
@@ -100,6 +144,7 @@ const years = Array.from(groupedByYear.keys()).sort((a, b) => b - a);
 		color: rgb(var(--gray));
 		font-variant-numeric: tabular-nums;
 		min-width: 3.5em;
+		font-weight: 500;
 	}
 
 	.archive-item__title {
@@ -107,9 +152,11 @@ const years = Array.from(groupedByYear.keys()).sort((a, b) => b - a);
 	}
 
 	@media (max-width: 720px) {
-		.archive-item__link {
+		.archive-item {
 			flex-direction: column;
-			gap: 0.15rem;
+			gap: 0.1rem;
+			padding-top: 0.25rem;
+			padding-bottom: 0.25rem;
 		}
 
 		.archive-item__date {
