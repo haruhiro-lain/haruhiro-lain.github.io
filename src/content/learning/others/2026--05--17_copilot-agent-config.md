@@ -2,6 +2,7 @@
 title: 'GitHub Copilot Agent 规范化配置'
 description: '配置 Hooks → AGENTS.md → Skills 三级限制，让 AI Agent 可追溯地在隔离分支上工作'
 pubDate: '2026-05-17'
+updatedDate: '2026-05-17'
 heroImage: './assets/2026--05--17_copilot-agent-config/agent-three-tier.png'
 tags: ['Copilot', 'Agent', 'Git', '开发规范', 'AI']
 ---
@@ -116,7 +117,7 @@ flowchart TD
 
 **以我常用的两个Hooks配置为例：**
 
-### 钩子 1：会话启动自动切分支
+### 钩子 1：会话启动自动切分支 + 备份
 
 **文件**：`.github/hooks/agent-branch.json`
 
@@ -126,14 +127,22 @@ flowchart TD
     "SessionStart": [
       {
         "type": "command",
-        "command": "git checkout beta 2>$null; if ($LASTEXITCODE -ne 0) { git checkout -b beta main }"
+        "command": "$ts = Get-Date -Format 'yyyyMMdd-HHmmss'; if (git show-ref --verify --quiet refs/heads/beta 2>$null) { git push origin beta:refs/tags/archive/beta-$ts 2>$null }; git checkout -B beta main",
+        "timeout": 15
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "$branch = git branch --show-current 2>$null; if ($branch -ne 'beta') { git checkout beta 2>$null; Write-Host '[hook] switched to beta' }",
+        "timeout": 5
       }
     ]
   }
 }
 ```
 
-**行为**：每次新对话开始时，自动从 `main` 创建/切换到 `beta` 分支。这样 Agent 的所有修改都与主分支**物理隔离**。
+**行为**：每次新对话用 `-B` 强制从 `main` 重建 `beta`（覆盖前自动备份到 `archive/beta-时间戳` 标签）。PreToolUse 钩子确保会话中途偏离 beta 时自动切回。
 
 ### 钩子 2：阻止推送到主分支
 
@@ -210,7 +219,7 @@ Agent 所有修改均在 `beta` 分支上进行，**禁止直接操作 {主分�
 git checkout {主分支}
 git merge --squash beta
 git commit -m "feat: <会话改动摘要>"
-git branch -D beta
+git push origin {主分支}
 ```
 
 ### description 编写要点
@@ -227,7 +236,7 @@ git branch -D beta
 ```
 main ──●────────────────────────────●──  (squash 合并后只有一个提交)
         \                          /
-beta    ●── feat: A ──●── fix: B ──╳  (合并后删除 beta)
+beta    ●── feat: A ──●── fix: B ──╳  (合并后 beta 被 -B 强制同步到 main)
 ```
 
 1. **SessionStart 钩子** → 自动切到 `beta` 分支
@@ -257,17 +266,126 @@ git checkout beta 2>$null; if ($LASTEXITCODE -ne 0) { git checkout -b beta main 
 
 Hook JSON 支持 `windows` / `linux` / `osx` 字段分别指定。
 
-### 3. 不要用 PostToolUse 做提交
+### 3. PreToolUse 防止中途偏离 beta
 
-`PostToolUse` 在**每次工具调用后**都触发，用来自动提交会导致提交记录爆炸。
+SessionStart 只在对话开始时切一次分支。如果用户中途手动切到 main（例如合并操作），后续 Agent 修改会直接落在 main 上。
 
-正确的提交粒度是"每个独立逻辑单元完成后"——在 AGENTS.md / Skill 中约定，由 Agent 自行判断时机。
+**解决**：增加 PreToolUse Hook —— 每次工具调用前检查当前分支，若不在 beta 则自动切回。
 
-### 4. 提交粒度 vs 可追溯性
+```json
+"PreToolUse": [
+  {
+    "type": "command",
+    "command": "$branch = git branch --show-current 2>$null; if ($branch -ne 'beta') { git checkout beta 2>$null; Write-Host '[hook] switched to beta' }",
+    "timeout": 5
+  }
+]
+```
 
-理想状态：每个独立逻辑单元一个 commit，带上描述性信息。
+### 4. 强制重建 beta 避免远端残留
 
-这样既能用 `git bisect` 定位问题，又不会产生一堆无意义的 `chore: auto commit`。
+最初设计是合并后删除 beta，下次会话从 main 重建，但这依赖手动 `git push origin --delete beta`，容易遗漏。
+
+**最终方案**：SessionStart 使用 `git checkout -B beta main`——无条件强制从 main 重建。用户合并后只需 `git push origin main`。
+
+```json
+"command": "$ts = Get-Date -Format 'yyyyMMdd-HHmmss'; if (git show-ref --verify --quiet refs/heads/beta 2>$null) { git push origin beta:refs/tags/archive/beta-$ts 2>$null }; git checkout -B beta main"
+```
+
+> 覆盖前将旧 beta 备份为 `archive/beta-时间戳` 标签，误操作时可从标签恢复。
+
+---
+
+## 配置快照
+
+模板已存放于 `TEMP/agent-template/`，新项目复制后替换 `{占位符}` 即可。以下是三文件当前内容：
+
+### AGENTS.md
+```markdown
+# AGENTS 指南
+
+{项目简介，一句话说明仓库类型}
+
+## 工作边界
+- {目录A}：{用途}
+- {目录B}：{用途}
+
+## 常用命令
+{install / dev / build / test 等常用命令}
+
+## 修改约定
+- 优先做最小改动，避免无关重构。
+- 修改后至少执行一次构建验证。
+- {项目特定高频规则}
+
+## Git 分支工作流
+- Agent 修改均在 `beta` 分支上（SessionStart 钩子自动切换）。
+- **每次修改文件前**，必须确认当前在 `beta` 分支；若不在，先 `git checkout beta` 再继续。
+- 提交规范与合并流程详见 `git-workflow` Skill（需要时自动加载）。
+```
+
+### .github/hooks/agent-branch.json
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "$ts = Get-Date -Format 'yyyyMMdd-HHmmss'; if (git show-ref --verify --quiet refs/heads/beta 2>$null) { git push origin beta:refs/tags/archive/beta-$ts 2>$null }; git checkout -B beta main",
+        "timeout": 15
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "$branch = git branch --show-current 2>$null; if ($branch -ne 'beta') { git checkout beta 2>$null; Write-Host '[hook] switched to beta' }",
+        "timeout": 5
+      }
+    ]
+  }
+}
+```
+
+### .github/skills/git-workflow/SKILL.md
+
+```yaml
+---
+name: git-workflow
+description: "Use when: committing code, creating git commits,
+  preparing to merge, or any git operation."
+---
+
+# Git 分支工作流
+
+## 分支策略
+Agent 所有修改均在 `beta` 分支上进行，**禁止直接操作 {主分支}**。
+- SessionStart Hook：每次新会话自动从 {主分支} 强制重建 beta
+- PreToolUse Hook：每次工具调用前检查当前分支，若不在 beta 则自动切换
+
+## 提交约定
+### 格式
+<type>(<scope>): <描述>
+
+### type
+| type | 用途 |
+|------|------|
+| feat | 新功能 |
+| fix  | 修复 |
+| chore | 构建、依赖、配置 |
+| style | 样式调整 |
+| refactor | 重构 |
+| content | 内容 |
+
+### scope
+按项目目录结构调整。
+
+## 合并流程（由用户手动执行）
+git checkout {主分支}
+git merge --squash beta
+git commit -m "feat: <会话改动摘要>"
+git push origin {主分支}
+```
 
 ---
 
@@ -286,8 +404,11 @@ Hook JSON 支持 `windows` / `linux` / `osx` 字段分别指定。
 | 问题 | 解决方案 | 层级 |
 |------|---------|------|
 | Agent 误改主分支 | SessionStart 钩子自动切 beta | Hooks |
-| Agent 误推主分支 | PreToolUse 钩子阻断 push | Hooks |
+| Agent 中途偏离 beta | PreToolUse 钩子每次调用前检查并切回 | Hooks |
+| Agent 误推主分支 | PreToolUse 钩子阻断 push（可选 guard-main.json） | Hooks |
+| 合并后 beta 残留 | `checkout -B beta main` 每次强制重建 | Hooks |
+| 覆盖前想保留旧 beta | 自动备份到 `archive/beta-时间戳` 标签 | Hooks |
 | 提交记录混乱 | 每个逻辑单元一提交 | Skill 约定 |
-| master 历史污染 | beta squash merge | Skill 约定 |
+| main 历史污染 | beta squash merge | Skill 约定 |
 | AGENTS.md 臃肿 | 详情拆到 Skill 按需加载 | 架构 |
 | 危险命令无防护 | 安全约束清单 + guard 钩子 | AGENTS + Hooks |
