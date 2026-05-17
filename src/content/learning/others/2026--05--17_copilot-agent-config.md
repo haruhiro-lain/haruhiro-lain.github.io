@@ -217,8 +217,7 @@ Agent 所有修改均在 `beta` 分支上进行，**禁止直接操作 {主分�
 
 ## 合并流程（手动审查后）
 git checkout {主分支}
-git merge --squash beta
-git commit -m "feat: <会话改动摘要>"
+git merge --squash beta; git commit -m "feat: <会话改动摘要>"
 git push origin {主分支}
 ```
 
@@ -242,7 +241,9 @@ beta    ●── feat: A ──●── fix: B ──╳  (合并后 beta 被 
 1. **SessionStart 钩子** → 自动切到 `beta` 分支
 2. **Agent 在 beta 上工作** → 每完成一个逻辑单元就提交
 3. **guard-main 钩子** → 防止 Agent 误推 main
-4. **人工审查** → 确认无误后 squash 合并到 main，一次提交干净历史
+4. **人工审查** → 确认无误后 squash 合并到 main
+
+> ⚠️ `git merge --squash beta` 会自动生成 `SQUASH_MSG` 模板。请用 `; git commit -m "..."` 一步完成，`-m` 会跳过模板。**不要**单独执行 `git commit`（无 `-m`）。
 
 ---
 
@@ -382,8 +383,7 @@ Agent 所有修改均在 `beta` 分支上进行，**禁止直接操作 {主分�
 
 ## 合并流程（由用户手动执行）
 git checkout {主分支}
-git merge --squash beta
-git commit -m "feat: <会话改动摘要>"
+git merge --squash beta; git commit -m "feat: <会话改动摘要>"
 git push origin {主分支}
 ```
 

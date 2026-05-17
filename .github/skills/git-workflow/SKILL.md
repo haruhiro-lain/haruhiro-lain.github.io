@@ -59,9 +59,8 @@ git commit -m "chore(deps): 升级 Astro 到 5.x"
 
 ```bash
 git checkout main
-git merge --squash beta
-git commit -m "feat: <会话改动摘要>"
+git merge --squash beta; git commit -m "feat: <会话改动摘要>"
 git push origin main
 ```
 
-> 旧 beta 会被备份到 `archive/beta-时间戳` 标签，误操作时可从中恢复。SessionStart Hook 自动完成备份 + 重建，无需手动操作。
+> ⚠️ 必须用 `&&` 连接并且带 `-m`。`--squash` 会自动生成 `SQUASH_MSG` 模板文件——`-m` 会直接覆盖它。**切勿**单独执行 `git commit`（不带 `-m`），否则编辑器会出现满屏的提交列表。
