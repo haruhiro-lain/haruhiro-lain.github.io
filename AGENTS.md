@@ -23,3 +23,10 @@ npm run preview
 - 优先做最小改动，避免无关重构。
 - 修改后至少执行一次 `npm run build` 验证。
 - 新增内容请补齐 frontmatter，字段需符合 `src/content.config.ts`。
+- 文章引用的图片放到 `src/content/{collection}/assets/{文章slug}/` 下，heroImage 用相对路径 `./assets/{文章slug}/{文件名}`。
+
+## Git 分支工作流
+
+- Agent 修改均在 `beta` 分支上（SessionStart 钩子自动切换）。
+- **每次修改文件前**，必须确认当前在 `beta` 分支；若不在，先 `git checkout beta` 再继续。
+- 提交规范与合并流程详见 `git-workflow` Skill（需要时自动加载）。

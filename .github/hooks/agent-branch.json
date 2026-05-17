@@ -1,0 +1,18 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "$ts = Get-Date -Format 'yyyyMMdd-HHmmss'; if (git show-ref --verify --quiet refs/heads/beta 2>$null) { git push origin beta:refs/tags/archive/beta-$ts 2>$null }; git checkout -B beta main",
+        "timeout": 15
+      }
+    ],
+    "PreToolUse": [
+      {
+        "type": "command",
+        "command": "$branch = git branch --show-current 2>$null; if ($branch -ne 'beta') { git checkout beta 2>$null; Write-Host '[hook] switched to beta' }",
+        "timeout": 5
+      }
+    ]
+  }
+}

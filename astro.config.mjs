@@ -32,6 +32,13 @@ export default defineConfig({
   // 集成配置：启用MDX和sitemap功能
   integrations: [mdx(), sitemap()],
 
+  // Vite 配置：修复 mermaid 在 dev 模式下的 dayjs ESM 兼容性问题
+  vite: {
+    optimizeDeps: {
+      include: ['mermaid'],
+    },
+  },
+
   // 字体配置：定义本地字体
   fonts: [
       {

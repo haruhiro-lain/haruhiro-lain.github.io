@@ -325,6 +325,43 @@ const isVA11HallA = entryCollection === 'life' && entryId?.replaceAll('\\', '/')
 		});
 	}
 	</script>
+
+	<script>
+	async function renderMermaidDiagrams() {
+		const mermaidBlocks = document.querySelectorAll('.prose pre[data-language="mermaid"] code');
+		if (mermaidBlocks.length === 0) return;
+
+		const { default: mermaid } = await import('mermaid');
+		const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+		mermaid.initialize({
+			startOnLoad: false,
+			theme: isLight ? 'default' : 'dark',
+			securityLevel: 'loose',
+		});
+
+		for (const block of mermaidBlocks) {
+			const pre = block.parentElement;
+			if (!(pre instanceof HTMLElement)) continue;
+
+			const code = block.textContent ?? '';
+			const id = `mermaid-${Math.random().toString(36).slice(2, 9)}`;
+
+			try {
+				const { svg } = await mermaid.render(id, code);
+				const wrapper = document.createElement('div');
+				wrapper.className = 'mermaid-wrapper';
+				wrapper.innerHTML = svg;
+				pre.replaceWith(wrapper);
+			} catch (err) {
+				console.error('Mermaid render error:', err);
+			}
+		}
+	}
+
+	document.addEventListener('DOMContentLoaded', renderMermaidDiagrams);
+	document.addEventListener('astro:page-load', renderMermaidDiagrams);
+	renderMermaidDiagrams();
+	</script>
 </PageShell>
 
 <style>
