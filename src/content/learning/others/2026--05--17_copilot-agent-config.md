@@ -2,7 +2,7 @@
 title: 'GitHub Copilot Agent 规范化配置'
 description: '配置 Hooks → AGENTS.md → Skills 三级限制，让 AI Agent 可追溯地在隔离分支上工作'
 pubDate: '2026-05-17'
-updatedDate: '2026-05-17'
+updatedDate: '2026-05-20'
 heroImage: './assets/2026--05--17_copilot-agent-config/agent-three-tier.png'
 tags: ['Copilot', 'Agent', 'Git', '开发规范', 'AI']
 ---
@@ -117,7 +117,7 @@ flowchart TD
 
 **以我常用的两个Hooks配置为例：**
 
-### 钩子 1：会话启动自动切分支 + 备份
+### 钩子 1：会话启动自动切分支
 
 **文件**：`.github/hooks/agent-branch.json`
 
@@ -127,7 +127,7 @@ flowchart TD
     "SessionStart": [
       {
         "type": "command",
-        "command": "$ts = Get-Date -Format 'yyyyMMdd-HHmmss'; if (git show-ref --verify --quiet refs/heads/beta 2>$null) { git push origin beta:refs/tags/archive/beta-$ts 2>$null }; git checkout -B beta main",
+        "command": "git checkout main 2>$null; git branch -D beta 2>$null; git checkout -b beta main",
         "timeout": 15
       }
     ],
@@ -142,7 +142,7 @@ flowchart TD
 }
 ```
 
-**行为**：每次新对话用 `-B` 强制从 `main` 重建 `beta`（覆盖前自动备份到 `archive/beta-时间戳` 标签）。PreToolUse 钩子确保会话中途偏离 beta 时自动切回。
+**行为**：每次新对话先切到 `main`，销毁本地 `beta` 分支，再从最新的 `main` 创建全新 `beta`。PreToolUse 钩子确保会话中途偏离 beta 时自动切回。
 
 ### 钩子 2：阻止推送到主分支
 
@@ -238,10 +238,10 @@ main ──●──────────────────────
 beta    ●── feat: A ──●── fix: B ──╳  (合并后 beta 被 -B 强制同步到 main)
 ```
 
-1. **SessionStart 钩子** → 自动切到 `beta` 分支
+1. **SessionStart 钩子** → 切到 main → 销毁本地 beta → 从 main 建全新 beta
 2. **Agent 在 beta 上工作** → 每完成一个逻辑单元就提交
 3. **guard-main 钩子** → 防止 Agent 误推 main
-4. **人工审查** → 确认无误后 squash 合并到 main
+4. **人工审查** → 确认无误后，手动将 beta 多条提交 squash 成一条，合并到 main 并推送
 
 > ⚠️ `git merge --squash beta` 会自动生成 `SQUASH_MSG` 模板。请用 `; git commit -m "..."` 一步完成，`-m` 会跳过模板。**不要**单独执行 `git commit`（无 `-m`）。
 
@@ -283,17 +283,17 @@ SessionStart 只在对话开始时切一次分支。如果用户中途手动切�
 ]
 ```
 
-### 4. 强制重建 beta 避免远端残留
+### 4. beta 分支本地化，不推远端
 
-最初设计是合并后删除 beta，下次会话从 main 重建，但这依赖手动 `git push origin --delete beta`，容易遗漏。
+最初设计在 SessionStart 时将旧 beta 备份为远端标签（`archive/beta-时间戳`），但标签会污染远端仓库且 git push 有网络依赖。
 
-**最终方案**：SessionStart 使用 `git checkout -B beta main`——无条件强制从 main 重建。用户合并后只需 `git push origin main`。
+**最终方案**：beta 完全不推远端。SessionStart 执行 `git checkout main; git branch -D beta; git checkout -b beta main`——三步走：先切 main、销毁本地旧 beta、从最新 main 建全新 beta。用户合并时只需 `git push origin main`。
 
 ```json
-"command": "$ts = Get-Date -Format 'yyyyMMdd-HHmmss'; if (git show-ref --verify --quiet refs/heads/beta 2>$null) { git push origin beta:refs/tags/archive/beta-$ts 2>$null }; git checkout -B beta main"
+"command": "git checkout main 2>$null; git branch -D beta 2>$null; git checkout -b beta main"
 ```
 
-> 覆盖前将旧 beta 备份为 `archive/beta-时间戳` 标签，误操作时可从标签恢复。
+> 纯本地操作，无网络依赖，无远端标签残留。
 
 ---
 
@@ -333,7 +333,7 @@ SessionStart 只在对话开始时切一次分支。如果用户中途手动切�
     "SessionStart": [
       {
         "type": "command",
-        "command": "$ts = Get-Date -Format 'yyyyMMdd-HHmmss'; if (git show-ref --verify --quiet refs/heads/beta 2>$null) { git push origin beta:refs/tags/archive/beta-$ts 2>$null }; git checkout -B beta main",
+        "command": "git checkout main 2>$null; git branch -D beta 2>$null; git checkout -b beta main",
         "timeout": 15
       }
     ],
@@ -361,8 +361,9 @@ description: "Use when: committing code, creating git commits,
 
 ## 分支策略
 Agent 所有修改均在 `beta` 分支上进行，**禁止直接操作 {主分支}**。
-- SessionStart Hook：每次新会话自动从 {主分支} 强制重建 beta
+- SessionStart Hook：每次新会话先切到 main，销毁本地 beta，再从 main 建全新 beta
 - PreToolUse Hook：每次工具调用前检查当前分支，若不在 beta 则自动切换
+- beta 分支仅存在于本地，不推送远端
 
 ## 提交约定
 ### 格式
@@ -382,6 +383,8 @@ Agent 所有修改均在 `beta` 分支上进行，**禁止直接操作 {主分�
 按项目目录结构调整。
 
 ## 合并流程（由用户手动执行）
+beta 上的所有修改仅存在于本地。用户手动将 beta 多条提交 squash 成一条，合并到 main 并推送：
+```bash
 git checkout {主分支}
 git merge --squash beta; git commit -m "feat: <会话改动摘要>"
 git push origin {主分支}
@@ -406,8 +409,8 @@ git push origin {主分支}
 | Agent 误改主分支 | SessionStart 钩子自动切 beta | Hooks |
 | Agent 中途偏离 beta | PreToolUse 钩子每次调用前检查并切回 | Hooks |
 | Agent 误推主分支 | PreToolUse 钩子阻断 push（可选 guard-main.json） | Hooks |
-| 合并后 beta 残留 | `checkout -B beta main` 每次强制重建 | Hooks |
-| 覆盖前想保留旧 beta | 自动备份到 `archive/beta-时间戳` 标签 | Hooks |
+| 合并后 beta 残留 | `git checkout main; git branch -D beta; git checkout -b beta main` 三步重建 | Hooks |
+| beta 不污染远端 | 仅本地操作，不推送 beta，合并后只需 push main | Hooks |
 | 提交记录混乱 | 每个逻辑单元一提交 | Skill 约定 |
 | main 历史污染 | beta squash merge | Skill 约定 |
 | AGENTS.md 臃肿 | 详情拆到 Skill 按需加载 | 架构 |

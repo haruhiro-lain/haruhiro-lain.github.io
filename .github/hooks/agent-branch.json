@@ -3,7 +3,7 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "$ts = Get-Date -Format 'yyyyMMdd-HHmmss'; if (git show-ref --verify --quiet refs/heads/beta 2>$null) { git push origin beta:refs/tags/archive/beta-$ts 2>$null }; git checkout -B beta main",
+        "command": "git checkout main 2>$null; git branch -D beta 2>$null; git checkout -b beta main",
         "timeout": 15
       }
     ],
