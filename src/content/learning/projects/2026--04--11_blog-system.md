@@ -36,10 +36,9 @@ src/
 ├── pages/          # 路由页面
 ├── content/        # 内容集合
 │   ├── learning/
-│   │   ├── blog/
 │   │   ├── algorithms/
 │   │   ├── projects/
-│   │   └── interview/
+│   │   └── others/
 │   └── life/
 │       ├── weekly/
 │       ├── GK/

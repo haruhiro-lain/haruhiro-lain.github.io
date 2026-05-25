@@ -3,12 +3,11 @@ import FormattedDate from '../../components/FormattedDate.astro';
 import PageShell from '../../layouts/PageShell.astro';
 import { getGroupedSectionPosts } from '../../utils/content';
 
-const collectionOrder = ['algorithms', 'projects', 'interview', 'blog'] as const;
+const collectionOrder = ['algorithms', 'projects', 'others'] as const;
 const collectionLabels: Record<(typeof collectionOrder)[number], string> = {
 	algorithms: '题解',
 	projects: '项目',
-	interview: '八股',
-	blog: '杂项',
+	others: '杂项',
 };
 
 const groupedPosts = await getGroupedSectionPosts('learning', collectionOrder);
