@@ -2,7 +2,7 @@
 title: 'GitHub Copilot Agent 规范化配置'
 description: '配置 Hooks → AGENTS.md → Skills 三级限制，让 AI Agent 可追溯地在隔离分支上工作'
 pubDate: '2026-05-17'
-updatedDate: '2026-05-20'
+updatedDate: '2026-05-25'
 heroImage: './assets/2026--05--17_copilot-agent-config/agent-three-tier.png'
 tags: ['Copilot', 'Agent', 'Git', '开发规范', 'AI']
 ---
@@ -51,9 +51,11 @@ flowchart TD
     subgraph LIFECYCLE["🔵 生命周期自动触发"]
         HOOKS["⚡ Hooks/*"]
         H1["SessionStart → 切分支"]
-        H2["PreToolUse → 阻断危险"]
+        H2["PreToolUse → 分支守护"]
+        H3["PostToolUse → 自动暂存"]
         HOOKS --> H1
         HOOKS --> H2
+        HOOKS --> H3
     end
 
     A6 -.->|"按需加载"| SKILLS
@@ -115,7 +117,7 @@ flowchart TD
 
 `Hooks` 是 **shell 命令**，在 Agent 生命周期的特定事件触发，执行结果具有确定性——可以做 Agent "建议"做不到的事。
 
-**以我常用的两个Hooks配置为例：**
+**以当前项目的 Hooks 配置为例：**
 
 ### 钩子 1：会话启动自动切分支
 
@@ -127,7 +129,7 @@ flowchart TD
     "SessionStart": [
       {
         "type": "command",
-        "command": "git checkout main 2>$null; git branch -D beta 2>$null; git checkout -b beta main",
+        "command": "git checkout beta 2>$null; if ($LASTEXITCODE -ne 0) { git checkout -b beta main }",
         "timeout": 15
       }
     ],
@@ -137,31 +139,31 @@ flowchart TD
         "command": "$branch = git branch --show-current 2>$null; if ($branch -ne 'beta') { git checkout beta 2>$null; Write-Host '[hook] switched to beta' }",
         "timeout": 5
       }
-    ]
-  }
-}
-```
-
-**行为**：每次新对话先切到 `main`，销毁本地 `beta` 分支，再从最新的 `main` 创建全新 `beta`。PreToolUse 钩子确保会话中途偏离 beta 时自动切回。
-
-### 钩子 2：阻止推送到主分支
-
-**文件**：`.github/hooks/guard-main.json`
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
+    ],
+    "PostToolUse": [
       {
         "type": "command",
-        "command": "powershell -Command \"...检测 git push 是否指向 main/master...\""
+        "command": "git add -A 2>$null",
+        "timeout": 5
       }
     ]
   }
 }
 ```
 
-**行为**：在 Agent 执行任何命令**之前**拦截——如果检测到 `git push` 指向主分支，则直接拒绝执行并返回原因。
+**行为**：
+
+| Hook | 触发时机 | 行为 |
+|------|---------|------|
+| `SessionStart` | 新对话开始 | 切换到 `beta`；若不存在则从 `main` 创建 |
+| `PreToolUse` | 每次工具调用前 | 检查当前分支，若不在 `beta` 则自动切回 |
+| `PostToolUse` | 每次工具调用后 | `git add -A` 自动暂存所有变更，**不提交**——由 Agent 决定何时按规范提交 |
+
+> ⚠️ PostToolUse 曾配置为自动 `git commit -m "chore(auto): agent modification"`，导致每次工具调用都生成无意义提交。现已改为仅暂存，Agent 在逻辑单元完成时手动执行有意义的 commit。
+
+### 钩子 2：阻断推送到主分支（可选）
+
+Guard hook 用于拦截 `git push` 指向 `main`/`master` 的操作，可通过 `PreToolUse` 检测命令内容实现。本项目当前未启用，按需添加即可。
 
 ### 可用事件一览
 
@@ -235,13 +237,14 @@ git push origin {主分支}
 ```
 main ──●────────────────────────────●──  (squash 合并后只有一个提交)
         \                          /
-beta    ●── feat: A ──●── fix: B ──╳  (合并后 beta 被 -B 强制同步到 main)
+beta    ●── feat: A ──●── fix: B ──╳  (合并后 beta reset 到 main 同步)
 ```
 
-1. **SessionStart 钩子** → 切到 main → 销毁本地 beta → 从 main 建全新 beta
-2. **Agent 在 beta 上工作** → 每完成一个逻辑单元就提交
-3. **guard-main 钩子** → 防止 Agent 误推 main
+1. **SessionStart 钩子** → 切换到 `beta`（不存在则从 `main` 创建），保留已有工作
+2. **Agent 在 beta 上工作** → PostToolUse 自动 `git add -A`；Agent 在逻辑单元完成时手动 `git commit`
+3. **PreToolUse 钩子** → 防止 Agent 误在 main 上操作
 4. **人工审查** → 确认无误后，手动将 beta 多条提交 squash 成一条，合并到 main 并推送
+5. **同步 beta** → 合并后将 beta reset 到 main：`git checkout beta && git reset --hard main`
 
 > ⚠️ `git merge --squash beta` 会自动生成 `SQUASH_MSG` 模板。请用 `; git commit -m "..."` 一步完成，`-m` 会跳过模板。**不要**单独执行 `git commit`（无 `-m`）。
 
@@ -285,15 +288,21 @@ SessionStart 只在对话开始时切一次分支。如果用户中途手动切�
 
 ### 4. beta 分支本地化，不推远端
 
-最初设计在 SessionStart 时将旧 beta 备份为远端标签（`archive/beta-时间戳`），但标签会污染远端仓库且 git push 有网络依赖。
-
-**最终方案**：beta 完全不推远端。SessionStart 执行 `git checkout main; git branch -D beta; git checkout -b beta main`——三步走：先切 main、销毁本地旧 beta、从最新 main 建全新 beta。用户合并时只需 `git push origin main`。
+beta 仅存在于本地，合并到 main 后只需 `git push origin main`。SessionStart 采用条件切换而非强制重建——保留已有提交，避免"孤儿提交"。
 
 ```json
-"command": "git checkout main 2>$null; git branch -D beta 2>$null; git checkout -b beta main"
+"command": "git checkout beta 2>$null; if ($LASTEXITCODE -ne 0) { git checkout -b beta main }"
 ```
 
-> 纯本地操作，无网络依赖，无远端标签残留。
+> 纯本地操作，无网络依赖，无远端标签残留。beta 的提交通过 reflog 可追溯，即使意外丢失也能恢复。
+
+### 5. PostToolUse 仅暂存，不自动提交
+
+自动提交（`git commit -m "chore(auto)"`）会导致每次工具调用都生成一条无意义提交，淹没真正的工作改动。改为仅 `git add -A`，交给 Agent 在逻辑单元完成时决定提交时机。
+
+```json
+"command": "git add -A 2>$null"
+```
 
 ---
 
@@ -333,7 +342,7 @@ SessionStart 只在对话开始时切一次分支。如果用户中途手动切�
     "SessionStart": [
       {
         "type": "command",
-        "command": "git checkout main 2>$null; git branch -D beta 2>$null; git checkout -b beta main",
+        "command": "git checkout beta 2>$null; if ($LASTEXITCODE -ne 0) { git checkout -b beta main }",
         "timeout": 15
       }
     ],
@@ -341,6 +350,13 @@ SessionStart 只在对话开始时切一次分支。如果用户中途手动切�
       {
         "type": "command",
         "command": "$branch = git branch --show-current 2>$null; if ($branch -ne 'beta') { git checkout beta 2>$null; Write-Host '[hook] switched to beta' }",
+        "timeout": 5
+      }
+    ],
+    "PostToolUse": [
+      {
+        "type": "command",
+        "command": "git add -A 2>$null",
         "timeout": 5
       }
     ]
@@ -361,8 +377,9 @@ description: "Use when: committing code, creating git commits,
 
 ## 分支策略
 Agent 所有修改均在 `beta` 分支上进行，**禁止直接操作 {主分支}**。
-- SessionStart Hook：每次新会话先切到 main，销毁本地 beta，再从 main 建全新 beta
+- SessionStart Hook：每次新会话切换到 `beta`；若 `beta` 不存在则从 `main` 创建
 - PreToolUse Hook：每次工具调用前检查当前分支，若不在 beta 则自动切换
+- PostToolUse Hook：每次工具调用后 `git add -A` 自动暂存，不提交
 - beta 分支仅存在于本地，不推送远端
 
 ## 提交约定
@@ -388,7 +405,52 @@ beta 上的所有修改仅存在于本地。用户手动将 beta 多条提交 sq
 git checkout {主分支}
 git merge --squash beta; git commit -m "feat: <会话改动摘要>"
 git push origin {主分支}
+git checkout beta && git reset --hard {主分支}
 ```
+
+---
+
+## 踩坑记录（2026-05-25）
+
+### 坑 1：SessionStart 强制重建导致"孤儿提交"
+
+**现象**：在 beta 上工作了多轮对话，积累若干提交。某次切换分支后再切回，发现所有 beta 提交消失。
+
+**根因**：旧版 SessionStart 执行 `git checkout main; git branch -D beta; git checkout -b beta main`，每次新会话都**强制删除** beta 并从 main 重建。
+
+**恢复**：提交并未真正丢失，通过 `git reflog` 可找到孤儿提交的 SHA，用 `git cherry-pick -n` 批量暂存后重新提交：
+
+```bash
+git reflog                          # 找到孤儿提交 SHA
+git cherry-pick -n <sha1> <sha2>...  # 批量暂存（不自动提交）
+git commit -m "周掸（2025/0525）"     # 压缩为一条
+```
+
+**修复**：SessionStart 改为条件切换 —— beta 存在则复用，不存在才创建。
+
+### 坑 2：PostToolUse 自动提交淹没工作记录
+
+**现象**：beta 分支上出现大量 `chore(auto): agent modification` 提交，真正的改动被淹没在噪音中。
+
+**根因**：PostToolUse 配置为 `git add -A; git commit -m "chore(auto): agent modification"`，每次工具调用后无条件提交。
+
+**修复**：移除自动提交，仅保留 `git add -A` 暂存。Agent 在逻辑单元完成时手动按 `type(scope): 描述` 格式提交。
+
+### 坑 3：beta 和 main 的分叉与同步
+
+**现象**：beta 合并到 main 后，两个分支指向不同提交，继续在 beta 上工作会基于旧提交产生分叉。
+
+**解决**：合并后立即同步 beta 到 main：
+
+```bash
+git checkout main
+git merge --squash beta; git commit -m "feat: <摘要>"
+git push origin main
+git checkout beta
+git reset --hard main      # 同步 beta 到 main 最新位置
+```
+
+> 核心原则：**永远 beta → main 单向合并**，合并后 beta 紧跟 main。
 
 ---
 
@@ -408,10 +470,11 @@ git push origin {主分支}
 |------|---------|------|
 | Agent 误改主分支 | SessionStart 钩子自动切 beta | Hooks |
 | Agent 中途偏离 beta | PreToolUse 钩子每次调用前检查并切回 | Hooks |
-| Agent 误推主分支 | PreToolUse 钩子阻断 push（可选 guard-main.json） | Hooks |
-| 合并后 beta 残留 | `git checkout main; git branch -D beta; git checkout -b beta main` 三步重建 | Hooks |
-| beta 不污染远端 | 仅本地操作，不推送 beta，合并后只需 push main | Hooks |
+| 自动提交淹没工作历史 | PostToolUse 仅 `git add -A`，Agent 手动 commit | Hooks |
+| SessionStart 强制重建导致孤儿提交 | 改为条件切换：存在则复用，不存在才创建 | Hooks |
+| 合并后 beta 与 main 分叉 | `git checkout beta && git reset --hard main` 同步 | 流程 |
+| beta 不污染远端 | 仅本地操作，不推送 beta | Hooks |
 | 提交记录混乱 | 每个逻辑单元一提交 | Skill 约定 |
 | main 历史污染 | beta squash merge | Skill 约定 |
 | AGENTS.md 臃肿 | 详情拆到 Skill 按需加载 | 架构 |
-| 危险命令无防护 | 安全约束清单 + guard 钩子 | AGENTS + Hooks |
+| 危险命令无防护 | 安全约束清单（可选 guard hook） | AGENTS + Hooks |

@@ -62,6 +62,7 @@ beta 上的所有修改仅存在于本地。确认 beta 分支无误后，用户
 git checkout main
 git merge --squash beta; git commit -m "feat: <会话改动摘要>"
 git push origin main
+git checkout beta && git reset --hard main
 ```
 
 > ⚠️ 必须用 `;` 连接并且带 `-m`。`--squash` 会自动生成 `SQUASH_MSG` 模板文件——`-m` 会直接覆盖它。**切勿**单独执行 `git commit`（不带 `-m`），否则编辑器会出现满屏的提交列表。
