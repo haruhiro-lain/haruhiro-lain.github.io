@@ -5,6 +5,7 @@ import { getRecentPostsWithCanonical } from '../utils/content';
 import HomeBannerContent from '../data/home.md';
 import RecentScheduleContent from '../data/recentSchedule.md';
 import { steamRecentGamesData } from '../data/steamRecentGames';
+import FallbackImage from '../assets/sunny.jpg';
 
 const recentBlogPosts = await getRecentPostsWithCanonical('learning', 2);
 const recentLifePosts = await getRecentPostsWithCanonical('life', 2, {
@@ -95,11 +96,9 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 			{recentBlogPosts.map(({ post, canonicalId }) => (
 				<li>
 					<a href={`/learning/${canonicalId}/`} class="home-card">
-						{post.data.heroImage && (
-							<div class="home-card__cover">
-								<img src={(post.data.heroImage as any)?.src ?? post.data.heroImage} alt="" loading="lazy" decoding="async" />
-							</div>
-						)}
+						<div class="home-card__cover">
+							<img src={(post.data.heroImage as any)?.src ?? post.data.heroImage ?? FallbackImage.src} alt="" loading="lazy" decoding="async" />
+						</div>
 						<div class="home-card__body">
 							<h3 class="home-card__title">{post.data.title}</h3>
 							{post.data.description && <p class="home-card__desc">{post.data.description}</p>}
@@ -283,9 +282,17 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 
 		applyBannerImage();
 
+		// 跳过因页面初始加载时 data-theme 设置触发的首次 MutationObserver 回调，
+		// 避免 applyBannerImage() 被调用两次导致图片突变。
+		let skipNextThemeChange = true;
+
 		const observer = new MutationObserver((mutationList) => {
 			for (const mutation of mutationList) {
 				if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+					if (skipNextThemeChange) {
+						skipNextThemeChange = false;
+						return;
+					}
 					applyBannerImage();
 					break;
 				}
@@ -396,6 +403,7 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 		display: grid;
 		place-items: center;
 		overflow: hidden;
+		transition: background-image 0.4s ease;
 	}
 
 	.home-banner-slot--has-image {

@@ -32,22 +32,45 @@ const headTitle = title === SITE_TITLE ? SITE_TITLE : `${title} - ${SITE_TITLE}`
 				var isVA = function(path) {
 					return path && path.indexOf('/life/VA-11_Hall-A') === 0;
 				};
+				var getStoredTheme = function() {
+					var saved = localStorage.getItem(STORAGE_KEY);
+					if (saved === 'light' || saved === 'dark') return saved;
+					if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+					return 'light';
+				};
+				var applyTheme = function(t) {
+					document.documentElement.setAttribute('data-theme', t);
+				};
 				var lock = function() {
 					var saved = localStorage.getItem(STORAGE_KEY);
 					if (saved && saved !== 'dark') {
 						localStorage.setItem(LOCK_KEY, saved);
 					}
 					localStorage.setItem(STORAGE_KEY, 'dark');
-					document.documentElement.setAttribute('data-theme', 'dark');
+					applyTheme('dark');
 				};
+				// 初始化：对所有页面立即设置正确的主题，避免 FOUC
 				if (isVA(window.location.pathname)) {
 					lock();
+				} else {
+					applyTheme(getStoredTheme());
 				}
 				document.addEventListener('astro:before-swap', function() {
 					if (isVA(window.location.pathname)) {
 						lock();
+					} else {
+						// 导航到非 VA 页面时，提前恢复用户主题，防止 View Transition 期间闪烁
+						applyTheme(getStoredTheme());
 					}
 				});
+			})();
+		</script>
+		<script is:inline>
+			(function() {
+				var FOCUS_KEY = 'focus-mode';
+				var saved = localStorage.getItem(FOCUS_KEY);
+				var mode = saved === 'off' ? 'off' : 'on';
+				document.documentElement.setAttribute('data-focus-mode', mode);
 			})();
 		</script>
 	</head>

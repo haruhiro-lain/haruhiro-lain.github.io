@@ -3,6 +3,7 @@ import FormattedDate from '../../../components/FormattedDate.astro';
 import PageShell from '../../../layouts/PageShell.astro';
 import type { CollectionEntry } from 'astro:content';
 import { getSortedPosts } from '../../../utils/content';
+import FallbackImage from '../../../assets/sunny.jpg';
 
 const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life'>) =>
 	post.id.startsWith('weekly/'),
@@ -19,11 +20,9 @@ const posts = (await getSortedPosts('life')).filter((post: CollectionEntry<'life
 					{posts.map((post: CollectionEntry<'life'>) => (
 						<li class="post-grid__item">
 							<a href={`/life/weekly/${post.id.slice('weekly/'.length)}/`} class="post-card">
-								{post.data.heroImage && (
-									<div class="post-card__cover">
-										<img src={(post.data.heroImage as any)?.src ?? post.data.heroImage} alt="" loading="lazy" decoding="async" />
-									</div>
-								)}
+								<div class="post-card__cover">
+									<img src={(post.data.heroImage as any)?.src ?? post.data.heroImage ?? FallbackImage.src} alt="" loading="lazy" decoding="async" />
+								</div>
 								<div class="post-card__body">
 									<h3 class="post-card__title">{post.data.title}</h3>
 									{post.data.description && <p class="post-card__desc">{post.data.description}</p>}

@@ -1,9 +1,9 @@
 // @ts-check
 
-// 导入必要的Astro集成和配置函数
-import mdx from '@astrojs/mdx';           // MDX集成，支持在Markdown中使用JSX
-import sitemap from '@astrojs/sitemap';   // 自动生成网站地图
-import { defineConfig, fontProviders } from 'astro/config'; // Astro配置API
+import mdx from '@astrojs/mdx';
+import sitemap from '@astrojs/sitemap';
+import vue from '@astrojs/vue';
+import { defineConfig, fontProviders } from 'astro/config';
 
 const [githubOwner = '', githubRepo = ''] = (process.env.GITHUB_REPOSITORY ?? '').split('/');
 const isUserSiteRepo = githubOwner && githubRepo === `${githubOwner}.github.io`;
@@ -24,13 +24,19 @@ export default defineConfig({
   site,
     base,
 
+    // 开发服务器配置：4321 落在 Windows 保留端口范围(4278-4377)，改用 3000
+    server: {
+        host: '127.0.0.1',
+        port: 3000,
+    },
+
     // 关闭开发工具栏（Dev Toolbar）
     devToolbar: {
         enabled: false,
     },
 
   // 集成配置：启用MDX和sitemap功能
-  integrations: [mdx(), sitemap()],
+  integrations: [mdx(), sitemap(), vue()],
 
   // Vite 配置：修复 mermaid 在 dev 模式下的 dayjs ESM 兼容性问题
   vite: {

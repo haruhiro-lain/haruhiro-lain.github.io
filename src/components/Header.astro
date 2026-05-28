@@ -1,6 +1,7 @@
 ---
 import { SITE_TITLE } from '../consts';
 import HeaderLink from './HeaderLink.astro';
+import NavDropdown from './NavDropdown.vue';
 ---
 
 <header>
@@ -8,49 +9,28 @@ import HeaderLink from './HeaderLink.astro';
         <h2><a href="/">{SITE_TITLE}</a></h2>
         <div class="internal-links">
             <HeaderLink href="/">首页</HeaderLink>
-            <div class="nav-item" data-menu-root>
-                <button
-                    class="nav-trigger"
-                    type="button"
-                    aria-expanded="false"
-                    aria-controls="submenu-learning"
-                >
-                    笔记
-                </button>
-                <div class="submenu submenu--cards" id="submenu-learning">
-                    <a class="submenu-card" href="/learning/algorithms">
-                        <h3>题解</h3>
-                    </a>
-                    <a class="submenu-card" href="/learning/projects">
-                        <h3>项目</h3>
-                    </a>
-                    <a class="submenu-card" href="/learning/others">
-                        <h3>杂项</h3>
-                    </a>
-                </div>
-            </div>
+            <NavDropdown
+                client:load
+                label="笔记"
+                menuId="submenu-learning"
+                items={[
+                    { title: '题解', href: '/learning/algorithms' },
+                    { title: '项目', href: '/learning/projects' },
+                    { title: '杂项', href: '/learning/others' },
+                ]}
+            />
             <HeaderLink href="/archives">归档</HeaderLink>
-            <div class="nav-item nav-item--life" data-menu-root>
-                <button
-                    class="nav-trigger"
-                    type="button"
-                    aria-expanded="false"
-                    aria-controls="submenu-life"
-                >
-                    动态
-                </button>
-                <div class="submenu submenu--cards" id="submenu-life">
-                    <a class="submenu-card" href="/life/weekly">
-                        <h3>周掸</h3>
-                    </a>
-                    <a class="submenu-card" href="/life/VA-11_Hall-A">
-                        <h3>烂酒罐</h3>
-                    </a>
-                    <a class="submenu-card" href="/life/GK">
-                        <h3>喷漆间</h3>
-                    </a>
-                </div>
-            </div>
+            <NavDropdown
+                client:load
+                label="动态"
+                menuId="submenu-life"
+                extraClass="nav-item--life"
+                items={[
+                    { title: '周掸', href: '/life/weekly' },
+                    { title: '烂酒罐', href: '/life/VA-11_Hall-A' },
+                    { title: '喷漆间', href: '/life/GK' },
+                ]}
+            />
             <HeaderLink href="/log">日志</HeaderLink>
             <HeaderLink href="/about">关于</HeaderLink>
         </div>
@@ -131,85 +111,6 @@ import HeaderLink from './HeaderLink.astro';
         gap: 0.7rem;
         flex: 0 1 auto;
     }
-    .nav-item {
-        position: relative;
-    }
-    .nav-trigger {
-        padding: 0.35em clamp(0.4rem, 1.8vw, 1.50em);
-        font-size: 0.92rem;
-        line-height: 1.4;
-        color: rgb(var(--black));
-        border-bottom: 4px solid transparent;
-        border-top: none;
-        border-left: none;
-        border-right: none;
-        background: transparent;
-        cursor: pointer;
-    }
-    .nav-item.is-open .nav-trigger {
-        border-bottom-color: var(--accent);
-    }
-    .nav-item:hover .nav-trigger,
-    .nav-item:focus-within .nav-trigger {
-        border-bottom-color: var(--accent);
-    }
-    .submenu {
-        display: flex;
-        position: absolute;
-        left: 0;
-        top: calc(100% + 0.25rem);
-        background: var(--overlay-bg);
-        backdrop-filter: blur(16px) saturate(130%);
-        -webkit-backdrop-filter: blur(16px) saturate(130%);
-        border: none;
-        box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.28);
-        border-radius: 8px;
-        padding: 0.3em 0.15em;
-        min-width: 75px;
-        flex-direction: column;
-        z-index: 1100;
-        white-space: nowrap;
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        transition:
-            opacity 0.15s ease 0.3s,
-            visibility 0s linear 0.35s;
-    }
-    .nav-item.is-open .submenu {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-        transition-delay: 0s, 0s;
-    }
-    .nav-item:hover .submenu,
-    .nav-item:focus-within .submenu {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
-        transition-delay: 0s, 0s;
-    }
-    .submenu a {
-        border-bottom: none;
-        border-radius: 6px;
-    }
-    .submenu a:hover {
-        background: rgba(var(--gray-light), 0.35);
-    }
-    .submenu--cards {
-        min-width: 80px;
-        padding: 0.2rem 0.12rem;
-        gap: 0.2rem;
-    }
-    .submenu-card {
-        display: block;
-        padding: 0.27rem 0.12rem;
-    }
-    .submenu-card h3 {
-        margin: 0;
-        font-size: 0.86rem;
-        line-height: 1.2;
-    }
     @media (max-width: 960px) {
         nav {
             justify-content: center;
@@ -228,90 +129,3 @@ import HeaderLink from './HeaderLink.astro';
         }
     }
 </style>
-
-<script>
-    // @ts-nocheck
-    const initHeaderMenus = () => {
-        /** @type {HTMLElement[]} */
-        const roots = Array.from(document.querySelectorAll('[data-menu-root]')).filter(
-            (element) => element instanceof HTMLElement,
-        );
-        if (roots.length === 0) return;
-
-        /** @param {HTMLElement} root */
-        const closeMenu = (root) => {
-            const trigger = /** @type {HTMLButtonElement | null} */ (root.querySelector('.nav-trigger'));
-            root.classList.remove('is-open');
-            if (trigger) {
-                trigger.setAttribute('aria-expanded', 'false');
-            }
-        };
-
-        /** @param {HTMLElement} root */
-        const openMenu = (root) => {
-            for (const item of roots) {
-                if (item !== root) closeMenu(item);
-            }
-            const trigger = /** @type {HTMLButtonElement | null} */ (root.querySelector('.nav-trigger'));
-            root.classList.add('is-open');
-            if (trigger) {
-                trigger.setAttribute('aria-expanded', 'true');
-            }
-        };
-
-        const closeAll = () => {
-            for (const item of roots) closeMenu(item);
-        };
-
-        for (const root of roots) {
-            const trigger = /** @type {HTMLButtonElement | null} */ (root.querySelector('.nav-trigger'));
-            if (!trigger || trigger.dataset.bound === 'true') continue;
-
-            trigger.dataset.bound = 'true';
-            trigger.addEventListener('click', () => {
-                if (root.classList.contains('is-open')) {
-                    closeMenu(root);
-                    return;
-                }
-                openMenu(root);
-            });
-
-            root.addEventListener('focusout', () => {
-                requestAnimationFrame(() => {
-                    if (!root.contains(document.activeElement)) {
-                        closeMenu(root);
-                    }
-                });
-            });
-
-            root.querySelectorAll('.submenu-card').forEach((linkElement) => {
-                if (!(linkElement instanceof HTMLAnchorElement)) return;
-                const link = linkElement;
-                if (link.dataset.bound === 'true') return;
-                link.dataset.bound = 'true';
-                link.addEventListener('click', () => {
-                    closeAll();
-                });
-            });
-        }
-
-        if (document.body.dataset.headerMenuBound !== 'true') {
-            document.body.dataset.headerMenuBound = 'true';
-
-            document.addEventListener('pointerdown', (event) => {
-                const target = event.target;
-                if (!(target instanceof Node)) return;
-                const inside = roots.some((menuRoot) => menuRoot.contains(target));
-                if (!inside) closeAll();
-            });
-
-            document.addEventListener('keydown', (event) => {
-                if (event.key === 'Escape') closeAll();
-            });
-        }
-    };
-
-    document.addEventListener('DOMContentLoaded', () => { initHeaderMenus(); });
-    document.addEventListener('astro:page-load', () => { initHeaderMenus(); });
-    initHeaderMenus();
-</script>

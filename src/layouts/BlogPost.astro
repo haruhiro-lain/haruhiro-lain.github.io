@@ -3,7 +3,9 @@ import { Image } from 'astro:assets';
 import type { MarkdownHeading } from 'astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import PostNav from '../components/PostNav.astro';
+import PostOutline from '../components/PostOutline.vue';
 import PageShell from './PageShell.astro';
+import FallbackImage from '../assets/sunny.jpg';
 
 type PostLink = {
 	title: string;
@@ -80,27 +82,8 @@ const isVA11HallA = entryCollection === 'life' && entryId?.replaceAll('\\', '/')
 ---
 
 <PageShell title={title} description={description} contentWidth="100%">
-	<article class:list={["post-article", 'post-article--with-outline']}>
-		{
-			outlineHeadings.length > 0 && (
-				<aside class="post-outline" aria-label="文章大纲" tabindex="0">
-					<div class="post-outline__inner">
-						<ul class="post-outline__list">
-							{outlineHeadings.map((heading) => (
-								<li
-									class:list={[
-										'post-outline__item',
-										heading.depth >= 3 && 'post-outline__item--nested',
-									]}
-								>
-									<a href={`#${heading.slug}`}>{heading.text}</a>
-								</li>
-							))}
-						</ul>
-					</div>
-				</aside>
-			)
-		}
+	<article class:list={["post-article", outlineHeadings.length > 0 && 'post-article--with-outline']}>
+		<PostOutline client:load headings={outlineHeadings} />
 		<div class="post-content">
 			<div class="hero-image">
 				{heroImageResult && heroImageResult.isImageMeta
@@ -235,95 +218,6 @@ const isVA11HallA = entryCollection === 'life' && entryId?.replaceAll('\\', '/')
 	document.addEventListener('DOMContentLoaded', resolveContentScopedImages);
 	document.addEventListener('astro:page-load', resolveContentScopedImages);
 	resolveContentScopedImages();
-	</script>
-
-	<script is:inline>
-	const outline = document.querySelector('.post-outline');
-
-	if (outline instanceof HTMLElement) {
-		const OPEN_CLASS = 'is-open';
-		const LOCK_CLASS = 'is-locked';
-		const CLOSE_DELAY_MS = 200;
-		const outlineInner = outline.querySelector('.post-outline__inner');
-		let closeTimer = null;
-		let isLocked = false;
-
-		const syncLockState = (locked) => {
-			window.dispatchEvent(
-				new CustomEvent('outline-lock-state-change', {
-					detail: { locked },
-				}),
-			);
-		};
-
-		const openOutline = () => {
-			if (closeTimer !== null) {
-				window.clearTimeout(closeTimer);
-				closeTimer = null;
-			}
-			outline.classList.add(OPEN_CLASS);
-		};
-
-		const closeOutlineWithDelay = () => {
-			if (isLocked) {
-				return;
-			}
-			if (closeTimer !== null) {
-				window.clearTimeout(closeTimer);
-			}
-			closeTimer = window.setTimeout(() => {
-				if (isLocked) {
-					return;
-				}
-				outline.classList.remove(OPEN_CLASS);
-				closeTimer = null;
-			}, CLOSE_DELAY_MS);
-		};
-
-		const setLockState = (locked) => {
-			isLocked = locked;
-			outline.classList.toggle(LOCK_CLASS, locked);
-			if (locked) {
-				openOutline();
-				return;
-			}
-			if (closeTimer !== null) {
-				window.clearTimeout(closeTimer);
-				closeTimer = null;
-			}
-			outline.classList.remove(OPEN_CLASS);
-		};
-
-		outline.addEventListener('mouseenter', openOutline);
-		outline.addEventListener('mouseleave', closeOutlineWithDelay);
-		outline.addEventListener('focusin', openOutline);
-		outline.addEventListener('focusout', (event) => {
-			const nextTarget = event.relatedTarget;
-			if (nextTarget instanceof Node && outline.contains(nextTarget)) {
-				return;
-			}
-			closeOutlineWithDelay();
-		});
-
-		if (outlineInner instanceof HTMLElement) {
-			outlineInner.addEventListener('click', (event) => {
-				const clickTarget = event.target;
-				if (clickTarget instanceof Element && clickTarget.closest('a')) {
-					return;
-				}
-				setLockState(!isLocked);
-				syncLockState(isLocked);
-			});
-		}
-
-		window.addEventListener('outline-lock-toggle', (event) => {
-			if (!(event instanceof CustomEvent)) {
-				return;
-			}
-			setLockState(event.detail?.locked === true);
-			syncLockState(isLocked);
-		});
-	}
 	</script>
 
 	<script>

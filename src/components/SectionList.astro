@@ -3,7 +3,8 @@
 import { Image } from 'astro:assets';
 import FormattedDate from './FormattedDate.astro';
 import PageShell from '../layouts/PageShell.astro';
-import FallbackImage from '../assets/blog-placeholder-about.jpg';
+import ListPagination from './ListPagination.vue';
+import FallbackImage from '../assets/sunny.jpg';
 
 interface Props {
 	title: string;
@@ -48,66 +49,13 @@ const { title, posts, collection } = Astro.props as Props;
 						</li>
 					))}
 				</ul>
-				<nav class="section-pagination" id="section-pagination" aria-label="分页导航" hidden>
-					<button id="pagination-prev" class="pagination-btn" type="button">上一页</button>
-					<span id="pagination-info">1 / 1</span>
-					<button id="pagination-next" class="pagination-btn" type="button">下一页</button>
-				</nav>
+				<ListPagination client:load listSelector="#section-list" itemSelector=".section-list__item" pageSize={12} />
 			</>
 		) : (
 			<p>该板块下暂无文章...</p>
 		)}
 	</section>
 </PageShell>
-
-<script>
-	const PAGE_SIZE = 12;
-	const list = document.getElementById('section-list');
-	const prevBtn = document.getElementById('pagination-prev') as HTMLButtonElement | null;
-	const nextBtn = document.getElementById('pagination-next') as HTMLButtonElement | null;
-	const info = document.getElementById('pagination-info');
-	const pagination = document.getElementById('section-pagination');
-
-	if (list && prevBtn && nextBtn && info && pagination) {
-		const items = list.querySelectorAll<HTMLElement>('.section-list__item');
-		const totalPages = Math.ceil(items.length / PAGE_SIZE);
-		let currentPage = 1;
-
-		if (totalPages <= 1) {
-			pagination.hidden = true;
-		} else {
-			pagination.hidden = false;
-		}
-
-		const render = () => {
-			items.forEach((item, i) => {
-				const page = Math.floor(i / PAGE_SIZE) + 1;
-				item.hidden = page !== currentPage;
-			});
-			info.textContent = `${currentPage} / ${totalPages}`;
-			prevBtn.disabled = currentPage <= 1;
-			nextBtn.disabled = currentPage >= totalPages;
-		};
-
-		prevBtn.addEventListener('click', () => {
-			if (currentPage > 1) {
-				currentPage -= 1;
-				render();
-				window.scrollTo({ top: 0, behavior: 'smooth' });
-			}
-		});
-
-		nextBtn.addEventListener('click', () => {
-			if (currentPage < totalPages) {
-				currentPage += 1;
-				render();
-				window.scrollTo({ top: 0, behavior: 'smooth' });
-			}
-		});
-
-		render();
-	}
-</script>
 
 <style>
 	.section-title {

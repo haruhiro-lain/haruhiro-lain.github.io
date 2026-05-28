@@ -4,7 +4,7 @@ import type { CollectionEntry } from 'astro:content';
 import FormattedDate from '../../../components/FormattedDate.astro';
 import PageShell from '../../../layouts/PageShell.astro';
 import { getSortedPosts } from '../../../utils/content';
-import FallbackImage from '../../../assets/blog-placeholder-about.jpg';
+import FallbackImage from '../../../assets/sunny.jpg';
 import { cabinetStockList } from '../../../data/cabinetStock';
 
 const normalizePostId = (id: string) => id.replaceAll('\\', '/');
@@ -166,59 +166,6 @@ const matchedMenus = vaPosts
 
 	</article>
 </PageShell>
-
-<script>
-	// Lock theme to dark on VA-11 Hall-A page, restore on leave
-	(() => {
-		const STORAGE_KEY = 'theme-preference';
-		const LOCK_KEY = 'va-theme-saved';
-
-		const saved = localStorage.getItem(STORAGE_KEY);
-		if (saved) {
-			localStorage.setItem(LOCK_KEY, saved);
-		}
-		localStorage.setItem(STORAGE_KEY, 'dark');
-		document.documentElement.setAttribute('data-theme', 'dark');
-
-		// Neutralize theme toggle clicks while on this page
-		const guard = () => {
-			document.documentElement.setAttribute('data-theme', 'dark');
-			localStorage.setItem(STORAGE_KEY, 'dark');
-			const btn = document.getElementById('theme-toggle');
-			if (btn) {
-				btn.textContent = '🌙';
-				btn.setAttribute('aria-label', '主题已锁定为深色');
-			}
-		};
-		const toggle = document.getElementById('theme-toggle');
-		if (toggle) {
-			toggle.addEventListener('click', guard, true);
-		}
-		guard(); // ensure icon is correct on first load
-
-		const restore = () => {
-			const prev = localStorage.getItem(LOCK_KEY);
-			if (prev) {
-				localStorage.setItem(STORAGE_KEY, prev);
-			}
-			localStorage.removeItem(LOCK_KEY);
-		};
-
-		// Also watch for direct attribute changes
-		const observer = new MutationObserver(() => {
-			if (document.documentElement.getAttribute('data-theme') !== 'dark') {
-				guard();
-			}
-		});
-		observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-
-		window.addEventListener('beforeunload', restore);
-		document.addEventListener('astro:before-swap', () => {
-			observer.disconnect();
-			restore();
-		}, { once: true });
-	})();
-</script>
 
 <script type="application/json" id="matched-menus-data" set:html={JSON.stringify(matchedMenus)}></script>
 
@@ -1428,7 +1375,7 @@ const matchedMenus = vaPosts
 	}
 
 	/* Locked theme-toggle on VA-11 Hall-A pages */
-	:global(#theme-toggle) {
+	.va-theme-locked {
 		opacity: 0.45;
 		border-color: var(--va-cyan) !important;
 		box-shadow: 0 0 10px rgba(0, 229, 255, 0.4), 0 0 20px rgba(0, 229, 255, 0.15);

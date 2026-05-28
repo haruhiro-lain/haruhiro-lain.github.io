@@ -1,17 +1,9 @@
 ---
 name: git-workflow
-description: "Use when: committing code, creating git commits, preparing to merge, or any git operation. Covers commit message format, branch workflow (beta → squash merge to main), type/scope conventions, and the step-by-step merge process."
+description: "Use when: committing code, creating git commits, preparing to merge, or any git operation. Covers commit message format, type/scope conventions, and the step-by-step merge process."
 ---
 
-# Git 分支工作流
-
-## 分支策略
-
-Agent 所有修改均在 `beta` 分支上进行，**禁止直接操作 main**。
-
-- **SessionStart Hook**：每次新会话先切到 `main`，销毁本地 `beta`，再从 `main` 重建全新 `beta`
-- **PreToolUse Hook**：每次工具调用前检查当前分支，若不在 `beta` 则自动切换
-- **beta 分支仅存在于本地**，不推送远端（`origin/beta` 无需维护）
+# Git 工作流
 
 ## 提交约定
 
@@ -54,15 +46,4 @@ git commit -m "fix(style): 修复 Footer 暗色模式适配"
 git commit -m "chore(deps): 升级 Astro 到 5.x"
 ```
 
-## 合并流程（由用户手动执行）
 
-beta 上的所有修改仅存在于本地。确认 beta 分支无误后，用户手动将 beta 上的多条提交压成一条，合并到 main 并推送：
-
-```bash
-git checkout main
-git merge --squash beta; git commit -m "feat: <会话改动摘要>"
-git push origin main
-git checkout beta && git reset --hard main
-```
-
-> ⚠️ 必须用 `;` 连接并且带 `-m`。`--squash` 会自动生成 `SQUASH_MSG` 模板文件——`-m` 会直接覆盖它。**切勿**单独执行 `git commit`（不带 `-m`），否则编辑器会出现满屏的提交列表。

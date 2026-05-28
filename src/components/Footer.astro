@@ -5,18 +5,18 @@ import {
 	SITE_FOOTER_POWERED_BY_URL,
 	SITE_START_YEAR,
 } from '../consts';
+import FloatingActions from './FloatingActions.vue';
 
 const currentYear = new Date().getFullYear();
 const yearText = currentYear <= SITE_START_YEAR ? `${SITE_START_YEAR}` : `${SITE_START_YEAR}-${currentYear}`;
 ---
 
-
 <footer class="site-footer" role="contentinfo">
 	<div class="site-info-bar" aria-label="站点信息栏">
 		<div class="site-info-inner">
 			<div class="site-info-left">
-				<span class="site-info-year">© {yearText}</span>
-				<span class="site-info-sep" aria-hidden="true">·</span>
+				<span class="site-info-year">&copy; {yearText}</span>
+				<span class="site-info-sep" aria-hidden="true">&middot;</span>
 				<span>{SITE_FOOTER_NAME}</span>
 			</div>
 			<div class="site-info-right">
@@ -25,113 +25,8 @@ const yearText = currentYear <= SITE_START_YEAR ? `${SITE_START_YEAR}` : `${SITE
 			</div>
 		</div>
 	</div>
-	<div class="floating-actions">
-		<button id="outline-toggle" class="floating-btn" type="button" aria-label="展开侧边栏" aria-pressed="false">≡</button>
-		<button id="scroll-top" class="floating-btn" type="button" aria-label="回到顶部">↑</button>
-		<button id="theme-toggle" class="floating-btn theme-toggle" type="button" aria-label="切换主题">🌙</button>
-		<button id="focus-mode-toggle" class="floating-btn" type="button" aria-label="专注模式已开启" aria-pressed="true">📚</button>
-	</div>
+	<FloatingActions client:load />
 </footer>
-
-<script is:inline>
-	const STORAGE_KEY = 'theme-preference';
-
-	const getPreferredTheme = () => {
-		const savedTheme = localStorage.getItem(STORAGE_KEY);
-		if (savedTheme === 'light' || savedTheme === 'dark') {
-			return savedTheme;
-		}
-		return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-	};
-
-	const applyTheme = (theme) => {
-		document.documentElement.setAttribute('data-theme', theme);
-		const toggleButton = document.getElementById('theme-toggle');
-		if (toggleButton) {
-			toggleButton.textContent = theme === 'dark' ? '🌙' : '☀️';
-			toggleButton.setAttribute('aria-label', theme === 'dark' ? '当前深色，点击切换到浅色' : '当前浅色，点击切换到深色');
-		}
-	};
-
-	const initialTheme = getPreferredTheme();
-	applyTheme(initialTheme);
-
-	const toggleButton = document.getElementById('theme-toggle');
-	if (toggleButton) {
-		toggleButton.addEventListener('click', () => {
-			const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-			const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-			applyTheme(nextTheme);
-			localStorage.setItem(STORAGE_KEY, nextTheme);
-		});
-	}
-
-	const scrollTopButton = document.getElementById('scroll-top');
-	if (scrollTopButton) {
-		scrollTopButton.addEventListener('click', () => {
-			window.scrollTo({ top: 0, behavior: 'smooth' });
-		});
-	}
-
-	const outlineToggleButton = document.getElementById('outline-toggle');
-	if (outlineToggleButton) {
-		let isOutlineLocked = false;
-
-		const updateOutlineButtonState = (locked) => {
-			isOutlineLocked = locked;
-			outlineToggleButton.classList.toggle('is-active', locked);
-			outlineToggleButton.setAttribute('aria-pressed', locked ? 'true' : 'false');
-			outlineToggleButton.setAttribute('aria-label', locked ? '收起侧边栏' : '展开侧边栏');
-		};
-
-		outlineToggleButton.addEventListener('click', () => {
-			updateOutlineButtonState(!isOutlineLocked);
-			window.dispatchEvent(
-				new CustomEvent('outline-lock-toggle', {
-					detail: { locked: isOutlineLocked },
-				}),
-			);
-		});
-
-		window.addEventListener('outline-lock-state-change', (event) => {
-			if (!(event instanceof CustomEvent)) {
-				return;
-			}
-			updateOutlineButtonState(event.detail?.locked === true);
-		});
-	}
-
-	const FOCUS_STORAGE_KEY = 'focus-mode';
-
-	const getFocusMode = () => {
-		const saved = localStorage.getItem(FOCUS_STORAGE_KEY);
-		return saved === 'off' ? 'off' : 'on';
-	};
-
-	const applyFocusMode = (mode) => {
-		document.documentElement.setAttribute('data-focus-mode', mode);
-		const focusBtn = document.getElementById('focus-mode-toggle');
-		if (focusBtn) {
-			const isOn = mode === 'on';
-			focusBtn.setAttribute('aria-pressed', isOn ? 'true' : 'false');
-			focusBtn.setAttribute('aria-label', isOn ? '专注模式已开启' : '专注模式已关闭');
-			focusBtn.textContent = isOn ? '\uD83D\uDCDA' : '\uD83C\uDFAE';
-		}
-	};
-
-	const initialFocusMode = getFocusMode();
-	applyFocusMode(initialFocusMode);
-
-	const focusToggleBtn = document.getElementById('focus-mode-toggle');
-	if (focusToggleBtn) {
-		focusToggleBtn.addEventListener('click', () => {
-			const current = document.documentElement.getAttribute('data-focus-mode') === 'on' ? 'on' : 'off';
-			const next = current === 'on' ? 'off' : 'on';
-			applyFocusMode(next);
-			localStorage.setItem(FOCUS_STORAGE_KEY, next);
-		});
-	}
-</script>
 
 <style>
 	footer {
@@ -194,44 +89,5 @@ const yearText = currentYear <= SITE_START_YEAR ? `${SITE_START_YEAR}` : `${SITE
 		.site-info-sep {
 			margin: 0 0.15rem;
 		}
-	}
-
-	.floating-actions {
-		position: fixed;
-		right: 1rem;
-		bottom: 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.55rem;
-		z-index: 1200;
-	}
-
-	.floating-btn {
-		width: 2.4rem;
-		height: 2.4rem;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		padding: 0;
-		border-radius: 10px;
-		border: 1px solid var(--floating-btn-border);
-		background: var(--overlay-bg-strong);
-		color: rgb(var(--black));
-		backdrop-filter: blur(8px);
-		-webkit-backdrop-filter: blur(8px);
-		cursor: pointer;
-		font: inherit;
-		font-size: 1rem;
-		line-height: 1;
-		box-shadow: var(--box-shadow);
-	}
-
-	.floating-btn:hover {
-		transform: translateY(-1px);
-	}
-
-	.floating-btn.is-active {
-		background: var(--overlay-card);
-		border-color: var(--accent);
 	}
 </style>
