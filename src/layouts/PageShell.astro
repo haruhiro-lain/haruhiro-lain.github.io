@@ -36,7 +36,7 @@ const headTitle = title === SITE_TITLE ? SITE_TITLE : `${title} - ${SITE_TITLE}`
 					var saved = localStorage.getItem(STORAGE_KEY);
 					if (saved === 'light' || saved === 'dark') return saved;
 					if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
-					return 'light';
+					return 'dark';
 				};
 				var applyTheme = function(t) {
 					document.documentElement.setAttribute('data-theme', t);

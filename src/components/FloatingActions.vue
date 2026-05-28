@@ -35,7 +35,7 @@
       type="button"
       :aria-pressed="focusMode === 'on'"
       :aria-label="focusMode === 'on' ? '专注模式已开启' : '专注模式已关闭'"
-      @click="toggleFocusMode"
+      @click="toggleFocusAndGoHome"
     >
       {{ focusMode === 'on' ? '📚' : '🎮' }}
     </button>
@@ -53,6 +53,13 @@ const { outlineLocked, toggleLock: toggleOutlineLock } = useOutlineLock()
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function toggleFocusAndGoHome() {
+  toggleFocusMode()
+  if (focusMode.value === 'on') {
+    window.location.href = '/'
+  }
 }
 </script>
 

@@ -15,12 +15,12 @@ function applyTheme(t: Theme) {
 }
 
 function getPreferredTheme(): Theme {
-  if (typeof localStorage === 'undefined') return 'light'
+  if (typeof localStorage === 'undefined') return 'dark'
   const saved = localStorage.getItem(STORAGE_KEY)
   if (saved === 'light' || saved === 'dark') return saved
   if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
     return 'dark'
-  return 'light'
+  return 'dark'
 }
 
 export function useTheme() {
