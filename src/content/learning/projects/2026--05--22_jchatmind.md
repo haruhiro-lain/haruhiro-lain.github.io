@@ -1,5 +1,5 @@
 ---
-title: 'JChatMind：从零搭建一个面试级 AI Agent 智能体平台'
+title: 'Java AI Agent 平台练手'
 description: '基于 Spring AI + React 的 AI Agent 项目实践，涵盖 Agent Loop 自主决策、工具调用框架、RAG 知识库检索与 SSE 实时推送'
 pubDate: '2026-05-22'
 heroImage: '../../../assets/blog-placeholder-2.jpg'

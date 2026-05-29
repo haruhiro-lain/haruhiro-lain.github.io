@@ -79,9 +79,15 @@ function resolveHeroImage(raw: unknown): { resolved: string; isImageMeta: boolea
 const heroImageResult = resolveHeroImage(heroImage);
 
 const isVA11HallA = entryCollection === 'life' && entryId?.replaceAll('\\', '/').toLowerCase().startsWith('va-11_hall-a/');
+const isLife = entryCollection === 'life';
 ---
 
 <PageShell title={title} description={description} contentWidth="100%">
+	{isLife && (
+		<style is:global>
+			:root { --font-body: var(--font-zcool); }
+		</style>
+	)}
 	<article class:list={["post-article", outlineHeadings.length > 0 && 'post-article--with-outline']}>
 		<PostOutline client:load headings={outlineHeadings} />
 		<div class="post-content">

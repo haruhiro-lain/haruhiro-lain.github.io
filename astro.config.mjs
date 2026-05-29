@@ -45,38 +45,43 @@ export default defineConfig({
     },
   },
 
-  // 字体配置：定义本地字体
+  // 字体配置
   fonts: [
       {
-          // 使用本地字体提供商
+          // 霞鹜文楷：全局默认字体（本地）
           provider: fontProviders.local(),
-          // 字体名称
-          name: 'Atkinson',
-          // CSS变量名，用于在样式中引用
-          cssVariable: '--font-atkinson',
-          // 后备字体
-          fallbacks: ['sans-serif'],
-          // 字体变体配置
+          name: 'LXGW WenKai',
+          cssVariable: '--font-wenkai',
+          fallbacks: ['KaiTi', 'STKaiti', 'serif'],
           options: {
               variants: [
                   {
-                      // 常规字重字体文件路径
-                      src: ['./src/assets/fonts/atkinson-regular.woff'],
-                      // 字体粗细
+                      src: ['./src/assets/fonts/LXGWWenKai-Regular.ttf'],
                       weight: 400,
-                      // 字体样式
                       style: 'normal',
-                      // 显示策略
                       display: 'swap',
                   },
                   {
-                      // 粗体字重字体文件路径
-                      src: ['./src/assets/fonts/atkinson-bold.woff'],
-                      // 字体粗细
+                      src: ['./src/assets/fonts/LXGWWenKai-Medium.ttf'],
                       weight: 700,
-                      // 字体样式
                       style: 'normal',
-                      // 显示策略
+                      display: 'swap',
+                  },
+              ],
+          },
+      },
+      {
+          // ZCOOL 青科黄油字：life 分区专用（本地）
+          provider: fontProviders.local(),
+          name: 'ZCOOL QingKe HuangYou',
+          cssVariable: '--font-zcool',
+          fallbacks: ['KaiTi', 'STKaiti', 'serif'],
+          options: {
+              variants: [
+                  {
+                      src: ['./src/assets/fonts/ZCOOLQingKeHuangYou-Regular.ttf'],
+                      weight: 400,
+                      style: 'normal',
                       display: 'swap',
                   },
               ],

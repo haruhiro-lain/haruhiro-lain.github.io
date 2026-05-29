@@ -2,7 +2,7 @@
 title: '调色板'
 description: ''
 pubDate: '2026-04-19'
-heroImage: '../../../assets/blog-placeholder-1.jpg'
+heroImage: '../../../assets/sunny.jpg'
 tags: ['调漆', '工具']
 top: true
 ---
