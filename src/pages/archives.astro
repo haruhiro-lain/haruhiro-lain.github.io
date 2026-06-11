@@ -3,7 +3,7 @@ import FormattedDate from '../components/FormattedDate.astro';
 import PageShell from '../layouts/PageShell.astro';
 import { getSortedPosts } from '../utils/content';
 
-const posts = await getSortedPosts('learning');
+const posts = (await getSortedPosts('learning')).filter((post) => !post.id.startsWith('interviews/'));
 
 // 按年分组
 const groupedByYear = new Map<number, typeof posts>();

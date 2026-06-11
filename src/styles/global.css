@@ -333,3 +333,10 @@ html[data-focus-mode='on'] .home-section--steam,
 html[data-focus-mode='on'] .nav-item--life {
 	display: none;
 }
+
+/* ── 面经模式：默认隐藏面经内容 ── */
+html[data-interview-mode='off'] .home-section--interviews,
+html[data-interview-mode='off'] .nav-item--interviews,
+html[data-interview-mode='off'] .category-section--interviews {
+	display: none;
+}

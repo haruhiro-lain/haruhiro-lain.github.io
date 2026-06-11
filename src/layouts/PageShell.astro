@@ -71,6 +71,10 @@ const headTitle = title === SITE_TITLE ? SITE_TITLE : `${title} - ${SITE_TITLE}`
 				var saved = localStorage.getItem(FOCUS_KEY);
 				var mode = saved === 'off' ? 'off' : 'on';
 				document.documentElement.setAttribute('data-focus-mode', mode);
+
+				var INTERVIEW_KEY = 'interview-unlocked';
+				var interviewMode = localStorage.getItem(INTERVIEW_KEY) === 'true' ? 'on' : 'off';
+				document.documentElement.setAttribute('data-interview-mode', interviewMode);
 			})();
 		</script>
 	</head>

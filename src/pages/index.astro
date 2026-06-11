@@ -1,14 +1,22 @@
 ---
 import PageShell from '../layouts/PageShell.astro';
 import FormattedDate from '../components/FormattedDate.astro';
-import { getRecentPostsWithCanonical } from '../utils/content';
+import { getRecentPostsWithCanonical, getSortedPosts, getCanonicalPostId } from '../utils/content';
 import HomeBannerContent from '../data/home.md';
 import RecentScheduleContent from '../data/recentSchedule.md';
 import { steamRecentGamesData } from '../data/steamRecentGames';
 import FallbackImage from '../assets/sunny.jpg';
 import UnlockDialog from '../components/UnlockDialog.vue';
 
-const recentBlogPosts = await getRecentPostsWithCanonical('learning', 2);
+const allLearningPosts = await getSortedPosts('learning');
+const recentBlogPosts = allLearningPosts
+	.filter((post) => !post.id.startsWith('interviews/'))
+	.slice(0, 2)
+	.map((post) => ({ post, canonicalId: getCanonicalPostId(post.id) }));
+const recentInterviewPosts = allLearningPosts
+	.filter((post) => post.id.startsWith('interviews/'))
+	.slice(0, 2)
+	.map((post) => ({ post, canonicalId: getCanonicalPostId(post.id) }));
 const recentLifePosts = await getRecentPostsWithCanonical('life', 2, {
 	gk: 'GK',
 	'va-11_hall-a': 'VA-11_Hall-A',
@@ -117,6 +125,38 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 			))}
 		</ul>
 	</section>
+
+	{recentInterviewPosts.length > 0 && (
+		<section class="home-section home-section--interviews">
+			<div class="home-section__head">
+				<h2>面经</h2>
+				<a href="/learning/interviews">查看更多</a>
+			</div>
+			<ul class="home-cards">
+				{recentInterviewPosts.map(({ post, canonicalId }) => (
+					<li>
+						<a href={`/learning/${canonicalId}/`} class="home-card">
+							<div class="home-card__cover">
+								<img src={(post.data.heroImage as any)?.src ?? post.data.heroImage ?? FallbackImage.src} alt="" loading="lazy" decoding="async" />
+							</div>
+							<div class="home-card__body">
+								<h3 class="home-card__title">{post.data.title}</h3>
+								{post.data.description && <p class="home-card__desc">{post.data.description}</p>}
+								{post.data.tags.length > 0 && (
+									<ul class="home-card__tags" aria-label="文章标签">
+										{post.data.tags.map((tag) => (
+											<li>#{tag}</li>
+										))}
+									</ul>
+								)}
+								<time class="home-card__date"><FormattedDate date={post.data.pubDate} /></time>
+							</div>
+						</a>
+					</li>
+				))}
+			</ul>
+		</section>
+	)}
 
 	<section class="home-section home-section--life">
 		<div class="home-section__head">

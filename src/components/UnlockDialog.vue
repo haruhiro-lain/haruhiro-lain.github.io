@@ -1,6 +1,7 @@
 <template>
   <div class="unlock-section">
-    <!-- 已解锁：显示锁定按钮 -->
+    <!-- 动态按钮 -->
+    <!-- 已解锁 -->
     <button
       v-if="focusUnlocked"
       class="unlock-btn"
@@ -10,33 +11,69 @@
     >
       🔓 不看动态
     </button>
-
     <!-- 未解锁折叠态 -->
     <button
-      v-else-if="!expanded"
+      v-else-if="unlockTarget !== 'life' || !lifeExpanded"
       class="unlock-btn"
       type="button"
       aria-label="看看动态"
-      @click="open"
+      @click="open('life')"
     >
       🔒 看看动态
     </button>
 
-    <!-- 未解锁展开态：密码输入 -->
-    <form v-else class="unlock-form" @submit.prevent="submit">
+    <!-- 面经按钮 -->
+    <button
+      v-if="interviewUnlocked"
+      class="unlock-btn"
+      type="button"
+      aria-label="不看面经"
+      @click="lockInterview"
+    >
+      🔓面经
+    </button>
+    <button
+      v-else-if="unlockTarget !== 'interview' || !interviewExpanded"
+      class="unlock-btn"
+      type="button"
+      aria-label="看看面经"
+      @click="open('interview')"
+    >
+      🔒面经
+    </button>
+
+    <!-- 密码输入（动态） -->
+    <form v-if="unlockTarget === 'life' && lifeExpanded" class="unlock-form" @submit.prevent="submitLife">
       <input
-        ref="inputRef"
-        v-model="password"
+        ref="lifeInputRef"
+        v-model="lifePassword"
         class="unlock-input"
-        :class="{ 'has-error': errorMsg }"
+        :class="{ 'has-error': lifeError }"
         type="password"
         placeholder="输入密码"
-        aria-label="解锁密码"
+        aria-label="解锁动态密码"
         autocomplete="off"
       />
-      <button class="unlock-submit" type="submit" :disabled="!password">确认</button>
-      <button class="unlock-cancel" type="button" @click="cancel">取消</button>
-      <p v-if="errorMsg" class="unlock-error">{{ errorMsg }}</p>
+      <button class="unlock-submit" type="submit" :disabled="!lifePassword">确认</button>
+      <button class="unlock-cancel" type="button" @click="cancelLife">取消</button>
+      <p v-if="lifeError" class="unlock-error">{{ lifeError }}</p>
+    </form>
+
+    <!-- 密码输入（面经） -->
+    <form v-if="unlockTarget === 'interview' && interviewExpanded" class="unlock-form" @submit.prevent="submitInterview">
+      <input
+        ref="interviewInputRef"
+        v-model="interviewPassword"
+        class="unlock-input"
+        :class="{ 'has-error': interviewError }"
+        type="password"
+        placeholder="输入密码"
+        aria-label="解锁面经密码"
+        autocomplete="off"
+      />
+      <button class="unlock-submit" type="submit" :disabled="!interviewPassword">确认</button>
+      <button class="unlock-cancel" type="button" @click="cancelInterview">取消</button>
+      <p v-if="interviewError" class="unlock-error">{{ interviewError }}</p>
     </form>
   </div>
 </template>
@@ -45,37 +82,73 @@
 import { ref, nextTick } from 'vue'
 import { useFocusMode } from '../composables/useFocusMode'
 
-const { focusUnlocked, tryUnlockFocus, lockFocus } = useFocusMode()
+const { focusUnlocked, interviewUnlocked, tryUnlockFocus, lockFocus, tryUnlockInterview, lockInterview, toggleFocusMode } = useFocusMode()
 
-const expanded = ref(false)
-const password = ref('')
-const errorMsg = ref('')
-const inputRef = ref<HTMLInputElement | null>(null)
+type UnlockTarget = 'life' | 'interview'
 
-function open() {
-  expanded.value = true
-  errorMsg.value = ''
-  password.value = ''
-  nextTick(() => {
-    inputRef.value?.focus()
-  })
-}
+const unlockTarget = ref<UnlockTarget | null>(null)
+const lifeExpanded = ref(false)
+const interviewExpanded = ref(false)
+const lifePassword = ref('')
+const interviewPassword = ref('')
+const lifeError = ref('')
+const interviewError = ref('')
+const lifeInputRef = ref<HTMLInputElement | null>(null)
+const interviewInputRef = ref<HTMLInputElement | null>(null)
 
-function cancel() {
-  expanded.value = false
-  errorMsg.value = ''
-  password.value = ''
-}
-
-function submit() {
-  const ok = tryUnlockFocus(password.value)
-  if (ok) {
-    errorMsg.value = ''
-    expanded.value = false
+function open(target: UnlockTarget) {
+  unlockTarget.value = target
+  if (target === 'life') {
+    lifeExpanded.value = true
+    lifeError.value = ''
+    lifePassword.value = ''
+    nextTick(() => lifeInputRef.value?.focus())
   } else {
-    errorMsg.value = '密码错误'
-    password.value = ''
-    inputRef.value?.focus()
+    interviewExpanded.value = true
+    interviewError.value = ''
+    interviewPassword.value = ''
+    nextTick(() => interviewInputRef.value?.focus())
+  }
+}
+
+function cancelLife() {
+  lifeExpanded.value = false
+  lifeError.value = ''
+  lifePassword.value = ''
+  unlockTarget.value = null
+}
+
+function cancelInterview() {
+  interviewExpanded.value = false
+  interviewError.value = ''
+  interviewPassword.value = ''
+  unlockTarget.value = null
+}
+
+function submitLife() {
+  const ok = tryUnlockFocus(lifePassword.value)
+  if (ok) {
+    lifeError.value = ''
+    lifeExpanded.value = false
+    unlockTarget.value = null
+    toggleFocusMode()
+  } else {
+    lifeError.value = '密码错误'
+    lifePassword.value = ''
+    lifeInputRef.value?.focus()
+  }
+}
+
+function submitInterview() {
+  const ok = tryUnlockInterview(interviewPassword.value)
+  if (ok) {
+    interviewError.value = ''
+    interviewExpanded.value = false
+    unlockTarget.value = null
+  } else {
+    interviewError.value = '密码错误'
+    interviewPassword.value = ''
+    interviewInputRef.value?.focus()
   }
 }
 </script>
@@ -84,8 +157,10 @@ function submit() {
 .unlock-section {
   display: flex;
   justify-content: flex-start;
+  gap: 0.6rem;
   margin-top: 2rem;
   padding-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .unlock-btn {
@@ -113,11 +188,10 @@ function submit() {
   align-items: center;
   gap: 0.45rem;
   flex-wrap: wrap;
-  justify-content: center;
 }
 
 .unlock-input {
-  width: 140px;
+  width: 120px;
   padding: 0.35rem 0.65rem;
   border: 1px solid var(--overlay-border);
   border-radius: 8px;
@@ -170,10 +244,9 @@ function submit() {
 }
 
 .unlock-error {
-  width: 100%;
   margin: 0.2rem 0 0;
   font-size: 0.78rem;
   color: #e55;
-  text-align: center;
+  white-space: nowrap;
 }
 </style>

@@ -4,11 +4,12 @@ import PageShell from '../../layouts/PageShell.astro';
 import { getGroupedSectionPosts } from '../../utils/content';
 import FallbackImage from '../../assets/sunny.jpg';
 
-const collectionOrder = ['algorithms', 'projects', 'others'] as const;
+const collectionOrder = ['algorithms', 'projects', 'others', 'interviews'] as const;
 const collectionLabels: Record<(typeof collectionOrder)[number], string> = {
 	algorithms: '题解',
 	projects: '项目',
 	others: '杂项',
+	interviews: '面经',
 };
 
 const groupedPosts = await getGroupedSectionPosts('learning', collectionOrder);
@@ -21,7 +22,7 @@ const groupedPosts = await getGroupedSectionPosts('learning', collectionOrder);
 		{groupedPosts.map(({ section, posts }) => {
 			const hasMore = posts.length > 6;
 			return (
-				<div class="category-section">
+				<div class={`category-section${section === 'interviews' ? ' category-section--interviews' : ''}`}>
 					<h2 class="category-title">
 						<a href={`/learning/${section}/`}>{collectionLabels[section]}</a>
 					</h2>

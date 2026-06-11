@@ -104,6 +104,7 @@ function handleItemClick() {
 .nav-trigger {
   padding: 0.35em clamp(0.4rem, 1.8vw, 1.5em);
   font-size: 0.92rem;
+  font-family: inherit;
   line-height: 1.4;
   color: rgb(var(--black));
   border-bottom: 4px solid transparent;
