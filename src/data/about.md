@@ -26,10 +26,10 @@ mySkills : Skills
 mySkills = MkSkills
     ["Java", "SQL"]
     ["Linux", "Windows"]
-    ["Oracle", "MySQL", "Redis"]
-    ["Spring Boot", "Netty", "Eclipse RCP/OSGi"]
+    ["MySQL", "PostgreSQL", "Redis", "Oracle"]
+    ["Spring Boot", "Spring MVC", "MyBatis", "Netty", "Zookeeper", "Eclipse RCP/OSGi"]
     ["Vue3"]
-    ["Maven", "Docker"]
+    ["Maven", "Docker", "Git"]
 ```
 
 ## Links
