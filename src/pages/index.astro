@@ -6,6 +6,7 @@ import HomeBannerContent from '../data/home.md';
 import RecentScheduleContent from '../data/recentSchedule.md';
 import { steamRecentGamesData } from '../data/steamRecentGames';
 import FallbackImage from '../assets/sunny.jpg';
+import UnlockDialog from '../components/UnlockDialog.vue';
 
 const recentBlogPosts = await getRecentPostsWithCanonical('learning', 2);
 const recentLifePosts = await getRecentPostsWithCanonical('life', 2, {
@@ -192,6 +193,8 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 			)}
 		</div>
 	</section>
+
+	<UnlockDialog client:load />
 </PageShell>
 
 <script is:inline>
@@ -798,4 +801,5 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 			gap: 0.2rem;
 		}
 	}
+
 </style>

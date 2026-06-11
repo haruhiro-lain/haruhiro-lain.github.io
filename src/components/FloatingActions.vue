@@ -32,12 +32,14 @@
 
     <button
       class="floating-btn"
+      :class="{ 'is-locked': !focusUnlocked, 'is-off': focusUnlocked && focusMode === 'off' }"
       type="button"
-      :aria-pressed="focusMode === 'on'"
-      :aria-label="focusMode === 'on' ? '专注模式已开启' : '专注模式已关闭'"
+      :disabled="!focusUnlocked"
+      :aria-pressed="focusUnlocked ? (focusMode === 'on' ? 'true' : 'false') : undefined"
+      :aria-label="focusUnlocked ? (focusMode === 'on' ? '专注模式已开启' : '专注模式已关闭') : '专注模式已锁定'"
       @click="toggleFocusAndGoHome"
     >
-      {{ focusMode === 'on' ? '📚' : '🎮' }}
+      {{ focusUnlocked && focusMode === 'off' ? '🎮' : '📚' }}
     </button>
   </div>
 </template>
@@ -48,7 +50,7 @@ import { useFocusMode } from '../composables/useFocusMode'
 import { useOutlineLock } from '../composables/useOutlineLock'
 
 const { theme, toggleTheme, isVaThemeLocked } = useTheme()
-const { focusMode, toggleFocusMode } = useFocusMode()
+const { focusMode, focusUnlocked, toggleFocusMode, lockFocus } = useFocusMode()
 const { outlineLocked, toggleLock: toggleOutlineLock } = useOutlineLock()
 
 function scrollToTop() {
@@ -56,10 +58,13 @@ function scrollToTop() {
 }
 
 function toggleFocusAndGoHome() {
-  toggleFocusMode()
-  if (focusMode.value === 'on') {
+  if (focusMode.value === 'off') {
+    // 从生活切回学习 → 自动锁定
+    lockFocus()
     window.location.href = '/'
+    return
   }
+  toggleFocusMode()
 }
 </script>
 
@@ -106,5 +111,19 @@ function toggleFocusAndGoHome() {
 .floating-btn.va-theme-locked {
   opacity: 0.45;
   cursor: not-allowed !important;
+}
+
+.floating-btn.is-locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
+
+.floating-btn.is-locked:hover {
+  transform: none;
+}
+
+.floating-btn.is-off {
+  border-color: var(--accent);
 }
 </style>
