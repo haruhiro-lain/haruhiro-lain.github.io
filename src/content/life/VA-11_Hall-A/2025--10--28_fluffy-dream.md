@@ -51,4 +51,4 @@ myFluffyDreamMenu = MkDrinkMenu
 3. 无酒精版最好在装满冰块的玻璃杯中直接搅拌混合。
 ```
 
-<img src="./assets/2025--10--28_fluffy-dream/9-FluffyDream.png" alt="Fluffy Dream" style="zoom: 25%;" />
+![]()

@@ -40,4 +40,4 @@ myMarsblastMenu = MkDrinkMenu
 3. 加入汤力水，搅拌均匀。
 ```
 
-<img src="./assets/2026--05--06_marsblast/14-Marsblast.png" alt="Marsblast" style="zoom: 25%;" />
+![]()

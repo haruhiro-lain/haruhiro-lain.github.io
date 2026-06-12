@@ -51,4 +51,4 @@ myCreviceSpikeMenu = MkDrinkMenu
 3. 无酒精版最好在装满冰块的玻璃杯中直接搅拌混合。
 ```
 
-<img src="./assets/2025--11--05_crevice-spike/8-CreviceSpike.png" alt="Crevice Spike" style="zoom: 25%;" />
+![]()

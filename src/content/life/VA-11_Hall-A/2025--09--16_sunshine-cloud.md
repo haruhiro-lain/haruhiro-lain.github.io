@@ -39,5 +39,5 @@ mySunshineCloudMenu = MkDrinkMenu
 3. 将酒液和冰块一起倒入杯中。
 ```
 
-<img src="./assets/2025--09--16_sunshine-cloud/22-SunshineCloud.png" alt="Sunshine Cloud" style="zoom: 25%;" />
-<img src="assets/2025--09--16_sunshine-cloud/IMG_20250913_202114.jpg" alt="IMG_20250913_202114" style="zoom:25%;" />
+![]()
+![]()

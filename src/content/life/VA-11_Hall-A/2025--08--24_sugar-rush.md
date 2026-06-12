@@ -48,4 +48,4 @@ mySugarRushMenu = MkDrinkMenu
 ```
 
 
-<img src="assets/2025--08--24_sugar-rush/Suger_Rush.jpg" alt="Suger_Rush" style="zoom:25%;" />
+![]()

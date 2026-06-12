@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "node --env-file-if-exists=.env scripts/dev-with-sync.mjs",
-    "build": "node --env-file-if-exists=.env scripts/sync-hpoi.mjs && node --env-file-if-exists=.env scripts/sync-github-avatar.mjs && astro build",
-    "build:full": "node --env-file-if-exists=.env scripts/sync-hpoi.mjs && node --env-file-if-exists=.env scripts/sync-steam.mjs && node --env-file-if-exists=.env scripts/sync-github-avatar.mjs && astro build",
+    "build": "node scripts/compress-images.mjs && node --env-file-if-exists=.env scripts/sync-hpoi.mjs && node --env-file-if-exists=.env scripts/sync-github-avatar.mjs && astro build",
+    "build:full": "node scripts/compress-images.mjs && node --env-file-if-exists=.env scripts/sync-hpoi.mjs && node --env-file-if-exists=.env scripts/sync-steam.mjs && node --env-file-if-exists=.env scripts/sync-github-avatar.mjs && astro build",
     "preview": "astro preview",
     "astro": "astro",
     "sync:hpoi": "node --env-file-if-exists=.env scripts/sync-hpoi.mjs",

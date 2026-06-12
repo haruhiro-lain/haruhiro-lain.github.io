@@ -1,4 +1,5 @@
 ---
+import { Image, getImage } from 'astro:assets';
 import PageShell from '../layouts/PageShell.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import { getRecentPostsWithCanonical, getSortedPosts, getCanonicalPostId } from '../utils/content';
@@ -21,23 +22,34 @@ const recentLifePosts = await getRecentPostsWithCanonical('life', 2, {
 	gk: 'GK',
 	'va-11_hall-a': 'VA-11_Hall-A',
 });
+
+// 背景图片：导入为 ImageMetadata，批量优化为 WebP
 const lightBackgroundImageModules = import.meta.glob('../assets/background/light/*.{png,jpg,jpeg,webp,avif,gif,svg}', {
 	eager: true,
 	import: 'default',
-	query: '?url',
 });
 const darkBackgroundImageModules = import.meta.glob('../assets/background/dark/*.{png,jpg,jpeg,webp,avif,gif,svg}', {
 	eager: true,
 	import: 'default',
-	query: '?url',
 });
+const lightBgOptimized = await Promise.all(
+	Object.values(lightBackgroundImageModules).map((img) =>
+		getImage({ src: img as any, format: 'webp', width: 1920, quality: 80 }),
+	),
+);
+const darkBgOptimized = await Promise.all(
+	Object.values(darkBackgroundImageModules).map((img) =>
+		getImage({ src: img as any, format: 'webp', width: 1920, quality: 80 }),
+	),
+);
+const lightBackgroundImages = lightBgOptimized.map((i) => i.src);
+const darkBackgroundImages = darkBgOptimized.map((i) => i.src);
+
 const steamCacheImageModules = import.meta.glob('../assets/steam-cache/*.{png,jpg,jpeg,webp,avif,gif,bmp}', {
 	eager: true,
 	import: 'default',
 	query: '?url',
 });
-const lightBackgroundImages = Object.values(lightBackgroundImageModules) as string[];
-const darkBackgroundImages = Object.values(darkBackgroundImageModules) as string[];
 const steamCacheImageUrlMap = Object.entries(steamCacheImageModules).reduce(
 	(result, [filePath, imageUrl]) => {
 		const normalizedPath = filePath.replaceAll('\\', '/');
@@ -55,9 +67,17 @@ const steamFetchedAt = steamRecentGamesData.fetchedAt ? new Date(steamRecentGame
 const githubProfileUrl = 'https://github.com/haruhiro-lain';
 const githubAvatarRemoteUrl = `${githubProfileUrl}.png?size=200`;
 const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
+
+// 优化 FallbackImage（sunny.jpg 607KB → ~150KB WebP）
+const optimizedFallback = await getImage({ src: FallbackImage, format: 'webp', width: 1020, quality: 80 });
 ---
 
 <PageShell title="首页" contentWidth="900px">
+	<!-- 预加载背景图，消除切换空白 -->
+	<link rel="preload" as="image" href={lightBackgroundImages[0]} fetchpriority="high" />
+	<link rel="preload" as="image" href={lightBackgroundImages[1] ?? lightBackgroundImages[0]} fetchpriority="high" />
+	<link rel="preload" as="image" href={darkBackgroundImages[0]} />
+	<link rel="preload" as="image" href={darkBackgroundImages[1] ?? darkBackgroundImages[0]} />
 	<section
 		id="home-banner-slot"
 		class="home-banner-slot"
@@ -453,6 +473,29 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 		background-color: transparent;
 	}
 
+	/* 伪元素承载背景图动画，不影响文本 */
+	.home-banner-slot--has-image::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		background: inherit;
+		background-size: cover;
+		background-position: center;
+		z-index: 0;
+		animation: banner-reveal 0.3s ease-out both;
+	}
+
+	@keyframes banner-reveal {
+		from {
+			opacity: 0;
+			filter: blur(8px);
+		}
+		to {
+			opacity: 1;
+			filter: blur(0);
+		}
+	}
+
 	.home-banner-textbox {
 		width: 66.66vw;
 		min-height: 50vh;
@@ -465,6 +508,8 @@ const githubAvatarCachedUrl = '/steam-cache/github-avatar-haruhiro-lain.png';
 		border-radius: 10px;
 		backdrop-filter: none;
 		-webkit-backdrop-filter: none;
+		position: relative;
+		z-index: 1;
 	}
 
 	.home-banner-card {

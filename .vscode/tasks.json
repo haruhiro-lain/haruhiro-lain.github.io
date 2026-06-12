@@ -89,6 +89,13 @@
 			"type": "shell",
 			"command": "node \"d:\\Code\\Astro-Blog\\TEMP\\rename-dates.js\"",
 			"isBackground": false
+		},
+		{
+			"label": "build astro blog",
+			"type": "shell",
+			"command": "npm run build",
+			"isBackground": false,
+			"problemMatcher": []
 		}
 	]
 }

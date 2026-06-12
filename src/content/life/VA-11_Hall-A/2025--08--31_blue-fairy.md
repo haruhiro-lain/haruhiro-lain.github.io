@@ -50,6 +50,6 @@ myBlueFairyMenu = MkDrinkMenu
 4. 冷却后，将2盎司的八角水与单一糖浆、柠檬汁、蓝色可食用色素和水一起放入装满冰块的摇壶中，重复步骤2。
 ```
 
-<img src="./assets/2025--08--31_blue-fairy/5-BlueFairy.png" alt="Blue Fairy" style="zoom: 25%;" />
-<img src="assets/2025--08--31_blue-fairy/Blue_Fariy.jpg" alt="Blue_Fariy" style="zoom:25%;" />
+![]()
+![]()
 

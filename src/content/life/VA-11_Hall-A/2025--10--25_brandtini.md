@@ -41,4 +41,4 @@ myBrandtiniMenu = MkDrinkMenu
 3. 将过滤的酒液倒入玻璃杯中，玻璃杯越漂亮酒就越好喝。 ;)
 ```
 
-<img src="./assets/2025--10--25_brandtini/6-Brandtini.png" alt="Brandtini" style="zoom: 25%;" />
+![]()

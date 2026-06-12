@@ -41,4 +41,4 @@ myFringeWeaverMenu = MkDrinkMenu
 4. 加入2盎司苏打水，用柠檬皮装饰杯口。
 ```
 
-<img src="./assets/2026--05--06_fringe-weaver/10-FringeWeaver.png" alt="Fringe Weaver" style="zoom: 25%;" />
+![]()

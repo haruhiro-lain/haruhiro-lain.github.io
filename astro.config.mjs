@@ -38,7 +38,15 @@ export default defineConfig({
   // 集成配置：启用MDX和sitemap功能
   integrations: [mdx(), sitemap(), vue()],
 
-  // Vite 配置：修复 mermaid 在 dev 模式下的 dayjs ESM 兼容性问题
+  // 图片优化：所有图片构建时自动压缩为 WebP
+  image: {
+    service: {
+      entrypoint: 'astro/assets/services/sharp',
+      config: {
+        limitInputPixels: false, // 允许处理超大图片
+      },
+    },
+  },
   vite: {
     optimizeDeps: {
       include: ['mermaid'],

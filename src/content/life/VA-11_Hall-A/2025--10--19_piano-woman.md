@@ -40,4 +40,4 @@ myPianoWomanMenu = MkDrinkMenu
 3. 加入1.5盎司汤力水，搅拌均匀。
 ```
 
-<img src="./assets/2025--10--19_piano-woman/18-PianoWoman.png" alt="Piano Woman" style="zoom: 25%;" />
+![]()

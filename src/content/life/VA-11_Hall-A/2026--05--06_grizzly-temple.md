@@ -39,4 +39,4 @@ myGrizzlyTempleMenu = MkDrinkMenu
 3. 加入姜汁啤酒，用薄荷叶装饰杯边。
 ```
 
-<img src="./assets/2026--05--06_grizzly-temple/12-GrizzlyTemple.png" alt="Grizzly Temple" style="zoom: 25%;" />
+![]()

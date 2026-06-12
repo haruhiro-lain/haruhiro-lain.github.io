@@ -40,4 +40,4 @@ myMoonblastMenu = MkDrinkMenu
 3. 加入苏打水，搅拌均匀。
 ```
 
-<img src="./assets/2026--05--06_moonblast/16-Marblast.png" alt="Moonblast" style="zoom: 25%;" />
+![]()

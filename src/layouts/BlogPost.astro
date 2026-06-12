@@ -41,17 +41,24 @@ const {
 	nextPost,
 } = Astro.props as Props;
 const outlineHeadings = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 3);
+// 导入所有内容图片和资源图片为 ImageMetadata，支持 Astro 自动优化
 const contentImageModules = import.meta.glob('../content/**/*.{png,jpg,jpeg,webp,avif,gif,svg}', {
 	eager: true,
 	import: 'default',
-	query: '?url',
 });
-const contentImageUrlMap = contentImageModules as Record<string, string>;
+const assetsImageModules = import.meta.glob('../assets/**/*.{png,jpg,jpeg,webp,avif,gif,svg}', {
+	eager: true,
+	import: 'default',
+});
+const contentImageMap: Record<string, ImageMetadata> = {
+	...contentImageModules as Record<string, ImageMetadata>,
+	...assetsImageModules as Record<string, ImageMetadata>,
+};
 
-function resolveHeroImage(raw: unknown): { resolved: string; isImageMeta: boolean } | undefined {
-	// Astro image() schema returns ImageMetadata object with .src
+function resolveHeroImage(raw: unknown): ImageMetadata | undefined {
+	// Astro image() schema returns ImageMetadata object
 	if (raw && typeof raw === 'object' && 'src' in (raw as Record<string, unknown>)) {
-		return { resolved: (raw as Record<string, string>).src, isImageMeta: true };
+		return raw as ImageMetadata;
 	}
 	if (typeof raw !== 'string') return undefined;
 	const normalized = raw.replaceAll('\\', '/');
@@ -71,12 +78,12 @@ function resolveHeroImage(raw: unknown): { resolved: string; isImageMeta: boolea
 		relativeKey = `${normalizedBaseDir}${normalized}`;
 	}
 	const lowerKey = relativeKey.toLowerCase();
-	for (const [k, v] of Object.entries(contentImageUrlMap)) {
-		if (k.toLowerCase() === lowerKey) return { resolved: v, isImageMeta: false };
+	for (const [k, v] of Object.entries(contentImageMap)) {
+		if (k.toLowerCase() === lowerKey) return v;
 	}
 	return undefined;
 }
-const heroImageResult = resolveHeroImage(heroImage);
+const heroImageMeta = resolveHeroImage(heroImage);
 
 const isVA11HallA = entryCollection === 'life' && entryId?.replaceAll('\\', '/').toLowerCase().startsWith('va-11_hall-a/');
 const isLife = entryCollection === 'life';
@@ -92,10 +99,7 @@ const isLife = entryCollection === 'life';
 		<PostOutline client:load headings={outlineHeadings} />
 		<div class="post-content">
 			<div class="hero-image">
-				{heroImageResult && heroImageResult.isImageMeta
-					? <Image width={1020} height={510} src={heroImage} alt="" />
-					: heroImageResult && <Image width={1020} height={510} src={heroImageResult.resolved} alt="" />
-				}
+				{heroImageMeta && <Image src={heroImageMeta} format="webp" width={1020} quality={80} alt="" />}
 			</div>
 			<div
 				class="prose"
@@ -127,7 +131,7 @@ const isLife = entryCollection === 'life';
 		<PostNav prevPost={prevPost} nextPost={nextPost} />
 	</article>
 
-	<script id="content-image-url-map" type="application/json" is:inline set:html={JSON.stringify(contentImageUrlMap)}></script>
+	<script id="content-image-url-map" type="application/json" is:inline set:html={JSON.stringify(contentImageMap)}></script>
 
 	<script is:inline>
 	const resolveContentScopedImages = () => {

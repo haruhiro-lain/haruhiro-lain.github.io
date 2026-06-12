@@ -38,4 +38,4 @@ myPiledriverMenu = MkDrinkMenu
 3. 用橙皮装饰杯边。
 ```
 
-<img src="./assets/2026--05--06_piledriver/19-Piledrive.png" alt="Piledriver" style="zoom: 25%;" />
+![]()
