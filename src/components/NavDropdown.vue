@@ -21,7 +21,7 @@
       <a
         v-for="item in items"
         :key="item.href"
-        class="submenu-card"
+        :class="['submenu-card', item.extraClass]"
         :href="item.href"
         @click="handleItemClick"
       >
@@ -38,6 +38,7 @@ import { useDropdownGroup } from '../composables/useDropdownGroup'
 interface DropdownItem {
   title: string
   href: string
+  extraClass?: string
 }
 
 interface Props {

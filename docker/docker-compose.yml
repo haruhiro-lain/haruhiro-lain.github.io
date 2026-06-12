@@ -1,0 +1,12 @@
+services:
+  astro-blog:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: astro-blog
+    ports:
+      - "18080:80"
+    restart: unless-stopped
+    # 如果构建时需要传入环境变量：
+    # environment:
+    #   - SITE_URL=https://your-domain.com

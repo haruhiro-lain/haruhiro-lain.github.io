@@ -337,6 +337,7 @@ html[data-focus-mode='on'] .nav-item--life {
 /* ── 面经模式：默认隐藏面经内容 ── */
 html[data-interview-mode='off'] .home-section--interviews,
 html[data-interview-mode='off'] .nav-item--interviews,
-html[data-interview-mode='off'] .category-section--interviews {
+html[data-interview-mode='off'] .category-section--interviews,
+html[data-interview-mode='off'] .submenu-item--interviews {
 	display: none;
 }
