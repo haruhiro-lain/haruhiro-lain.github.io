@@ -4,7 +4,6 @@ import PageShell from '../layouts/PageShell.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import { getRecentPostsWithCanonical, getSortedPosts, getCanonicalPostId } from '../utils/content';
 import HomeBannerContent from '../data/home.md';
-import RecentScheduleContent from '../data/recentSchedule.md';
 import { steamRecentGamesData } from '../data/steamRecentGames';
 import FallbackImage from '../assets/sunny.jpg';
 import UnlockDialog from '../components/UnlockDialog.vue';
@@ -103,14 +102,6 @@ const optimizedFallback = await getImage({ src: FallbackImage, format: 'webp', w
 		</div>
 	</section>
 
-	<section class="home-section home-section--schedule">
-		<div class="schedule-card" aria-label="最近日程">
-			<div class="schedule-card__content">
-				<RecentScheduleContent />
-			</div>
-		</div>
-	</section>
-
 	<section class="home-hero">
 
 		<!-- <h1>Haruhiro Blog</h1> -->
@@ -152,25 +143,12 @@ const optimizedFallback = await getImage({ src: FallbackImage, format: 'webp', w
 				<h2>面经</h2>
 				<a href="/learning/interviews">查看更多</a>
 			</div>
-			<ul class="home-cards">
-				{recentInterviewPosts.map(({ post, canonicalId }) => (
-					<li>
-						<a href={`/learning/${canonicalId}/`} class="home-card">
-							<div class="home-card__cover">
-								<img src={(post.data.heroImage as any)?.src ?? post.data.heroImage ?? FallbackImage.src} alt="" loading="lazy" decoding="async" />
-							</div>
-							<div class="home-card__body">
-								<h3 class="home-card__title">{post.data.title}</h3>
-								{post.data.description && <p class="home-card__desc">{post.data.description}</p>}
-								{post.data.tags.length > 0 && (
-									<ul class="home-card__tags" aria-label="文章标签">
-										{post.data.tags.map((tag) => (
-											<li>#{tag}</li>
-										))}
-									</ul>
-								)}
-								<time class="home-card__date"><FormattedDate date={post.data.pubDate} /></time>
-							</div>
+<ul class="home-interview-list">
+			{recentInterviewPosts.map(({ post, canonicalId }) => (
+				<li>
+					<a href={`/learning/${canonicalId}/`}>
+						<span class="home-interview-list__title">{post.data.title}</span>
+						<FormattedDate date={post.data.pubDate} />
 						</a>
 					</li>
 				))}
@@ -570,60 +548,6 @@ const optimizedFallback = await getImage({ src: FallbackImage, format: 'webp', w
 		margin-top: 1.8rem;
 	}
 
-	.home-section--schedule {
-		margin-top: 1rem;
-	}
-
-	.schedule-card {
-		border: 1px solid var(--overlay-border);
-		border-radius: 10px;
-		background: var(--overlay-card);
-		padding: 0.85rem 1rem;
-	}
-
-	.schedule-card__content {
-		font-size: 0.95rem;
-		line-height: 1.6;
-		color: rgb(var(--black));
-	}
-
-	.schedule-card__content :global(h1),
-	.schedule-card__content :global(h2),
-	.schedule-card__content :global(h3) {
-		margin: 0 0 0.55rem;
-		font-size: 1.1rem;
-	}
-
-	.schedule-card__content :global(h3) {
-		margin-top: 0.9rem;
-		font-size: 1rem;
-	}
-
-	.schedule-card__content :global(h3:first-child) {
-		margin-top: 0;
-	}
-
-	.schedule-card__content :global(p) {
-		margin: 0.45rem 0;
-		line-height: 1.5;
-	}
-
-	.schedule-card__content :global(ul) {
-		margin: 0 0 0.4rem;
-		padding-left: 1.2rem;
-		display: grid;
-		gap: 0.25rem;
-	}
-
-	.schedule-card__content :global(li) {
-		margin: 0;
-		padding-left: 0.1rem;
-	}
-
-	.schedule-card__content :global(strong) {
-		font-size: 0.98rem;
-	}
-
 	.home-section--steam {
 		padding-bottom: 1.2rem;
 	}
@@ -885,6 +809,42 @@ const optimizedFallback = await getImage({ src: FallbackImage, format: 'webp', w
 			flex-direction: column;
 			gap: 0.2rem;
 		}
+	}
+
+	.home-interview-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.home-interview-list a {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		text-decoration: none;
+		color: rgb(var(--black));
+		padding: 0.35rem 0;
+		border-bottom: 1px solid var(--overlay-border);
+		transition: color 0.2s;
+	}
+
+	.home-interview-list a:hover {
+		color: rgb(var(--accent));
+	}
+
+	.home-interview-list__title {
+		font-weight: 500;
+		font-size: 1rem;
+	}
+
+	.home-interview-list time {
+		font-size: 0.85rem;
+		color: rgb(var(--gray));
+		flex-shrink: 0;
 	}
 
 </style>

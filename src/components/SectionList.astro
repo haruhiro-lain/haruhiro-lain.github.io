@@ -10,21 +10,36 @@ interface Props {
 	title: string;
 	posts: any[];
 	collection: string;
+	showCover?: boolean;
+	compact?: boolean;
 }
 
-const { title, posts, collection } = Astro.props as Props;
+const { title, posts, collection, showCover = true, compact = false } = Astro.props as Props;
 ---
 
 <PageShell title={title} contentWidth="900px">
 	<h1 class="section-title">{title}</h1>
 	<section>
 		{posts.length > 0 ? (
+			compact ? (
+				<ul class="section-compact-list" id="section-list">
+					{posts.map((post) => (
+						<li class="section-compact-list__item">
+							<a href={`/${collection}/${post.id}/`}>
+								<span class="section-compact-list__title">{post.data.title}</span>
+								<FormattedDate date={post.data.pubDate} />
+							</a>
+						</li>
+					))}
+				</ul>
+			) : (
 			<>
 				<ul class="section-list" id="section-list">
 					{posts.map((post) => (
 						<li class="section-list__item">
 							<a href={`/${collection}/${post.id}/`} class="section-card">
-								{post.data.heroImage ? (
+							{showCover && (
+								post.data.heroImage ? (
 									<div class="section-card__cover">
 										<Image src={post.data.heroImage} alt="" />
 									</div>
@@ -32,7 +47,8 @@ const { title, posts, collection } = Astro.props as Props;
 									<div class="section-card__cover">
 										<Image src={FallbackImage} alt="" />
 									</div>
-								)}
+								)
+							)}
 								<div class="section-card__body">
 									<h2 class="section-card__title">{post.data.title}</h2>
 									{post.data.description && <p class="section-card__desc">{post.data.description}</p>}
@@ -51,6 +67,7 @@ const { title, posts, collection } = Astro.props as Props;
 				</ul>
 				<ListPagination client:load listSelector="#section-list" itemSelector=".section-list__item" pageSize={12} />
 			</>
+			)
 		) : (
 			<p>该板块下暂无文章...</p>
 		)}
@@ -217,5 +234,41 @@ const { title, posts, collection } = Astro.props as Props;
 		.section-card__tags {
 			justify-content: center;
 		}
+	}
+
+	.section-compact-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.section-compact-list a {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		text-decoration: none;
+		color: rgb(var(--black));
+		padding: 0.35rem 0;
+		border-bottom: 1px solid var(--overlay-border);
+		transition: color 0.2s;
+	}
+
+	.section-compact-list a:hover {
+		color: rgb(var(--accent));
+	}
+
+	.section-compact-list__title {
+		font-weight: 500;
+		font-size: 1rem;
+	}
+
+	.section-compact-list time {
+		font-size: 0.85rem;
+		color: rgb(var(--gray));
+		flex-shrink: 0;
 	}
 </style>

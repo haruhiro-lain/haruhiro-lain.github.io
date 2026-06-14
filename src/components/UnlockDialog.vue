@@ -42,6 +42,26 @@
       🔒面经
     </button>
 
+    <!-- 草稿按钮 -->
+    <button
+      v-if="todoUnlocked"
+      class="unlock-btn"
+      type="button"
+      aria-label="不看TO-DO"
+      @click="lockTodo"
+    >
+      🔓TO-DO
+    </button>
+    <button
+      v-else-if="unlockTarget !== 'todo' || !todoExpanded"
+      class="unlock-btn"
+      type="button"
+      aria-label="看看TO-DO"
+      @click="open('todo')"
+    >
+      🔒TO-DO
+    </button>
+
     <!-- 密码输入（动态） -->
     <form v-if="unlockTarget === 'life' && lifeExpanded" class="unlock-form" @submit.prevent="submitLife">
       <input
@@ -75,6 +95,23 @@
       <button class="unlock-cancel" type="button" @click="cancelInterview">取消</button>
       <p v-if="interviewError" class="unlock-error">{{ interviewError }}</p>
     </form>
+
+    <!-- 密码输入（草稿） -->
+    <form v-if="unlockTarget === 'todo' && todoExpanded" class="unlock-form" @submit.prevent="submitTodo">
+      <input
+        ref="todoInputRef"
+        v-model="todoPassword"
+        class="unlock-input"
+        :class="{ 'has-error': todoError }"
+        type="password"
+        placeholder="输入密码"
+        aria-label="解锁草稿密码"
+        autocomplete="off"
+      />
+      <button class="unlock-submit" type="submit" :disabled="!todoPassword">确认</button>
+      <button class="unlock-cancel" type="button" @click="cancelTodo">取消</button>
+      <p v-if="todoError" class="unlock-error">{{ todoError }}</p>
+    </form>
   </div>
 </template>
 
@@ -82,19 +119,23 @@
 import { ref, nextTick } from 'vue'
 import { useFocusMode } from '../composables/useFocusMode'
 
-const { focusUnlocked, interviewUnlocked, tryUnlockFocus, lockFocus, tryUnlockInterview, lockInterview, toggleFocusMode } = useFocusMode()
+const { focusUnlocked, interviewUnlocked, todoUnlocked, tryUnlockFocus, lockFocus, tryUnlockInterview, lockInterview, toggleFocusMode, tryUnlockTodo, lockTodo } = useFocusMode()
 
-type UnlockTarget = 'life' | 'interview'
+type UnlockTarget = 'life' | 'interview' | 'todo'
 
 const unlockTarget = ref<UnlockTarget | null>(null)
 const lifeExpanded = ref(false)
 const interviewExpanded = ref(false)
+const todoExpanded = ref(false)
 const lifePassword = ref('')
 const interviewPassword = ref('')
+const todoPassword = ref('')
 const lifeError = ref('')
 const interviewError = ref('')
+const todoError = ref('')
 const lifeInputRef = ref<HTMLInputElement | null>(null)
 const interviewInputRef = ref<HTMLInputElement | null>(null)
+const todoInputRef = ref<HTMLInputElement | null>(null)
 
 function open(target: UnlockTarget) {
   unlockTarget.value = target
@@ -103,11 +144,16 @@ function open(target: UnlockTarget) {
     lifeError.value = ''
     lifePassword.value = ''
     nextTick(() => lifeInputRef.value?.focus())
-  } else {
+  } else if (target === 'interview') {
     interviewExpanded.value = true
     interviewError.value = ''
     interviewPassword.value = ''
     nextTick(() => interviewInputRef.value?.focus())
+  } else {
+    todoExpanded.value = true
+    todoError.value = ''
+    todoPassword.value = ''
+    nextTick(() => todoInputRef.value?.focus())
   }
 }
 
@@ -122,6 +168,13 @@ function cancelInterview() {
   interviewExpanded.value = false
   interviewError.value = ''
   interviewPassword.value = ''
+  unlockTarget.value = null
+}
+
+function cancelTodo() {
+  todoExpanded.value = false
+  todoError.value = ''
+  todoPassword.value = ''
   unlockTarget.value = null
 }
 
@@ -149,6 +202,20 @@ function submitInterview() {
     interviewError.value = '密码错误'
     interviewPassword.value = ''
     interviewInputRef.value?.focus()
+  }
+}
+
+function submitTodo() {
+  const ok = tryUnlockTodo(todoPassword.value)
+  if (ok) {
+    todoError.value = ''
+    todoExpanded.value = false
+    unlockTarget.value = null
+    window.location.href = '/TO-DO'
+  } else {
+    todoError.value = '密码错误'
+    todoPassword.value = ''
+    todoInputRef.value?.focus()
   }
 }
 </script>

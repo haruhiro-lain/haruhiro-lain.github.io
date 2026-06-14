@@ -4,4 +4,4 @@ import { getSortedPosts } from '../../../utils/content';
 
 const posts = (await getSortedPosts('learning')).filter((post) => post.id.startsWith('interviews/'));
 ---
-<SectionList title="面经" posts={posts} collection="learning" />
+<SectionList title="面经" posts={posts} collection="learning" showCover={false} compact={true} />

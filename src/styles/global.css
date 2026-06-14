@@ -342,6 +342,11 @@ html[data-interview-mode='off'] .submenu-item--interviews {
 	display: none;
 }
 
+/* ── 草稿模式：默认隐藏草稿内容 ── */
+html[data-todo-mode='off'] .nav-item--todo {
+	display: none;
+}
+
 /* ── 图片加载动画：淡入 + 模糊渐消 ── */
 @keyframes img-reveal {
 	from {

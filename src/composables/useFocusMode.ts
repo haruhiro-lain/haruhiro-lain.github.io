@@ -3,6 +3,7 @@ import { ref, watch, onMounted } from 'vue'
 const STORAGE_KEY = 'focus-mode'
 const UNLOCK_KEY = 'focus-unlocked'
 const INTERVIEW_UNLOCK_KEY = 'interview-unlocked'
+const TODO_UNLOCK_KEY = 'todo-unlocked'
 const UNLOCK_PASSWORD = '123123'
 
 type FocusMode = 'on' | 'off'
@@ -10,6 +11,7 @@ type FocusMode = 'on' | 'off'
 const focusMode = ref<FocusMode>('on')
 const focusUnlocked = ref(false)
 const interviewUnlocked = ref(false)
+const todoUnlocked = ref(false)
 
 function syncFromDOM() {
   if (typeof document === 'undefined') return
@@ -27,6 +29,11 @@ function syncUnlocked() {
 function syncInterviewUnlocked() {
   if (typeof localStorage === 'undefined') return
   interviewUnlocked.value = localStorage.getItem(INTERVIEW_UNLOCK_KEY) === 'true'
+}
+
+function syncTodoUnlocked() {
+  if (typeof localStorage === 'undefined') return
+  todoUnlocked.value = localStorage.getItem(TODO_UNLOCK_KEY) === 'true'
 }
 
 function applyFocusMode(mode: FocusMode) {
@@ -47,6 +54,7 @@ export function useFocusMode() {
     syncFromDOM()
     syncUnlocked()
     syncInterviewUnlocked()
+    syncTodoUnlocked()
   })
 
   const toggleFocusMode = () => {
@@ -101,14 +109,41 @@ export function useFocusMode() {
     }
   }
 
+  const tryUnlockTodo = (password: string): boolean => {
+    if (password === UNLOCK_PASSWORD) {
+      todoUnlocked.value = true
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(TODO_UNLOCK_KEY, 'true')
+      }
+      if (typeof document !== 'undefined') {
+        document.documentElement.setAttribute('data-todo-mode', 'on')
+      }
+      return true
+    }
+    return false
+  }
+
+  const lockTodo = () => {
+    todoUnlocked.value = false
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(TODO_UNLOCK_KEY)
+    }
+    if (typeof document !== 'undefined') {
+      document.documentElement.setAttribute('data-todo-mode', 'off')
+    }
+  }
+
   return {
     focusMode,
     focusUnlocked,
     interviewUnlocked,
+    todoUnlocked,
     toggleFocusMode,
     tryUnlockFocus,
     lockFocus,
     tryUnlockInterview,
     lockInterview,
+    tryUnlockTodo,
+    lockTodo,
   }
 }
