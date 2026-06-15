@@ -1,4 +1,4 @@
-# 绿联4800plus nas配置
+# 绿联4800plus nas配置 配置挂载服务到公网踩坑流程
 ## docker配置，使用等
 1. tailscale虚拟组网
 2. nas docker配置代理

@@ -1,122 +1,135 @@
 <template>
-  <div class="unlock-section">
-    <!-- 动态按钮 -->
-    <!-- 已解锁 -->
-    <button
-      v-if="focusUnlocked"
-      class="unlock-btn"
-      type="button"
-      aria-label="不看动态"
-      @click="lockFocus"
-    >
-      🔓 不看动态
-    </button>
-    <!-- 未解锁折叠态 -->
-    <button
-      v-else-if="unlockTarget !== 'life' || !lifeExpanded"
-      class="unlock-btn"
-      type="button"
-      aria-label="看看动态"
-      @click="open('life')"
-    >
-      🔒 看看动态
-    </button>
+  <div ref="sectionRef" class="unlock-section">
+    <!-- 按钮行 -->
+    <div class="unlock-buttons">
+      <!-- 动态 -->
+      <button
+        v-if="focusUnlocked"
+        ref="lifeBtnRef"
+        class="unlock-btn"
+        type="button"
+        aria-label="不看动态"
+        @click="lockFocus"
+      >
+        🔓 不看动态
+      </button>
+      <button
+        v-else
+        ref="lifeBtnRef"
+        class="unlock-btn"
+        :class="{ 'unlock-btn--active': unlockTarget === 'life' && lifeExpanded }"
+        type="button"
+        aria-label="看看动态"
+        @click="toggle('life')"
+      >
+        🔒 看看动态
+      </button>
 
-    <!-- 面经按钮 -->
-    <button
-      v-if="interviewUnlocked"
-      class="unlock-btn"
-      type="button"
-      aria-label="不看面经"
-      @click="lockInterview"
-    >
-      🔓面经
-    </button>
-    <button
-      v-else-if="unlockTarget !== 'interview' || !interviewExpanded"
-      class="unlock-btn"
-      type="button"
-      aria-label="看看面经"
-      @click="open('interview')"
-    >
-      🔒面经
-    </button>
+      <!-- 面经 -->
+      <button
+        v-if="interviewUnlocked"
+        ref="interviewBtnRef"
+        class="unlock-btn"
+        type="button"
+        aria-label="不看面经"
+        @click="lockInterview"
+      >
+        🔓面经
+      </button>
+      <button
+        v-else
+        ref="interviewBtnRef"
+        class="unlock-btn"
+        :class="{ 'unlock-btn--active': unlockTarget === 'interview' && interviewExpanded }"
+        type="button"
+        aria-label="看看面经"
+        @click="toggle('interview')"
+      >
+        🔒面经
+      </button>
 
-    <!-- 草稿按钮 -->
-    <button
-      v-if="todoUnlocked"
-      class="unlock-btn"
-      type="button"
-      aria-label="不看TO-DO"
-      @click="lockTodo"
-    >
-      🔓TO-DO
-    </button>
-    <button
-      v-else-if="unlockTarget !== 'todo' || !todoExpanded"
-      class="unlock-btn"
-      type="button"
-      aria-label="看看TO-DO"
-      @click="open('todo')"
-    >
-      🔒TO-DO
-    </button>
+      <!-- TO-DO -->
+      <button
+        v-if="todoUnlocked"
+        ref="todoBtnRef"
+        class="unlock-btn"
+        type="button"
+        aria-label="不看TO-DO"
+        @click="lockTodo"
+      >
+        🔓TO-DO
+      </button>
+      <button
+        v-else
+        ref="todoBtnRef"
+        class="unlock-btn"
+        :class="{ 'unlock-btn--active': unlockTarget === 'todo' && todoExpanded }"
+        type="button"
+        aria-label="看看TO-DO"
+        @click="toggle('todo')"
+      >
+        🔒TO-DO
+      </button>
+    </div>
 
-    <!-- 密码输入（动态） -->
-    <form v-if="unlockTarget === 'life' && lifeExpanded" class="unlock-form" @submit.prevent="submitLife">
-      <input
-        ref="lifeInputRef"
-        v-model="lifePassword"
-        class="unlock-input"
-        :class="{ 'has-error': lifeError }"
-        type="password"
-        placeholder="输入密码"
-        aria-label="解锁动态密码"
-        autocomplete="off"
-      />
-      <button class="unlock-submit" type="submit" :disabled="!lifePassword">确认</button>
-      <button class="unlock-cancel" type="button" @click="cancelLife">取消</button>
-      <p v-if="lifeError" class="unlock-error">{{ lifeError }}</p>
-    </form>
+    <!-- 表单行（独立于按钮 flex 流，偏移对齐对应按钮） -->
+    <div v-if="hasActiveForm" class="unlock-form-row" :style="{ paddingLeft: formLeft }">
+      <!-- 动态 -->
+      <form v-if="unlockTarget === 'life' && lifeExpanded" class="unlock-form" @submit.prevent="submitLife">
+        <input
+          ref="lifeInputRef"
+          v-model="lifePassword"
+          class="unlock-input"
+          :class="{ 'has-error': lifeError }"
+          type="password"
+          placeholder="输入密码"
+          aria-label="解锁动态密码"
+          autocomplete="off"
+        />
+        <button class="unlock-submit" type="submit" :disabled="!lifePassword">确认</button>
+        <button class="unlock-cancel" type="button" @click="cancelLife">取消</button>
+        <p v-if="lifeError" class="unlock-error">{{ lifeError }}</p>
+      </form>
 
-    <!-- 密码输入（面经） -->
-    <form v-if="unlockTarget === 'interview' && interviewExpanded" class="unlock-form" @submit.prevent="submitInterview">
-      <input
-        ref="interviewInputRef"
-        v-model="interviewPassword"
-        class="unlock-input"
-        :class="{ 'has-error': interviewError }"
-        type="password"
-        placeholder="输入密码"
-        aria-label="解锁面经密码"
-        autocomplete="off"
-      />
-      <button class="unlock-submit" type="submit" :disabled="!interviewPassword">确认</button>
-      <button class="unlock-cancel" type="button" @click="cancelInterview">取消</button>
-      <p v-if="interviewError" class="unlock-error">{{ interviewError }}</p>
-    </form>
+      <!-- 面经 -->
+      <form v-if="unlockTarget === 'interview' && interviewExpanded" class="unlock-form" @submit.prevent="submitInterview">
+        <input
+          ref="interviewInputRef"
+          v-model="interviewPassword"
+          class="unlock-input"
+          :class="{ 'has-error': interviewError }"
+          type="password"
+          placeholder="输入密码"
+          aria-label="解锁面经密码"
+          autocomplete="off"
+        />
+        <button class="unlock-submit" type="submit" :disabled="!interviewPassword">确认</button>
+        <button class="unlock-cancel" type="button" @click="cancelInterview">取消</button>
+        <p v-if="interviewError" class="unlock-error">{{ interviewError }}</p>
+      </form>
 
-    <!-- 密码输入（草稿） -->
-    <form v-if="unlockTarget === 'todo' && todoExpanded" class="unlock-form" @submit.prevent="submitTodo">
-      <input
-        ref="todoInputRef"
-        v-model="todoPassword"
-        class="unlock-input"
-        :class="{ 'has-error': todoError }"
-        type="password"
-        placeholder="输入密码"
-        aria-label="解锁草稿密码"
-        autocomplete="off"
-      />
-      <button class="unlock-submit" type="submit" :disabled="!todoPassword">确认</button>
-      <button class="unlock-cancel" type="button" @click="cancelTodo">取消</button>
-      <p v-if="todoError" class="unlock-error">{{ todoError }}</p>
-    </form>
+      <!-- TO-DO -->
+      <form v-if="unlockTarget === 'todo' && todoExpanded" class="unlock-form" @submit.prevent="submitTodo">
+        <input
+          ref="todoInputRef"
+          v-model="todoPassword"
+          class="unlock-input"
+          :class="{ 'has-error': todoError }"
+          type="password"
+          placeholder="输入密码"
+          aria-label="解锁草稿密码"
+          autocomplete="off"
+        />
+        <button class="unlock-submit" type="submit" :disabled="!todoPassword">确认</button>
+        <button class="unlock-cancel" type="button" @click="cancelTodo">取消</button>
+        <p v-if="todoError" class="unlock-error">{{ todoError }}</p>
+      </form>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useFocusMode } from '../composables/useFocusMode'
 
 const { focusUnlocked, interviewUnlocked, todoUnlocked, tryUnlockFocus, lockFocus, tryUnlockInterview, lockInterview, toggleFocusMode, tryUnlockTodo, lockTodo } = useFocusMode()
@@ -137,22 +150,61 @@ const lifeInputRef = ref<HTMLInputElement | null>(null)
 const interviewInputRef = ref<HTMLInputElement | null>(null)
 const todoInputRef = ref<HTMLInputElement | null>(null)
 
+const sectionRef = ref<HTMLElement | null>(null)
+const lifeBtnRef = ref<HTMLButtonElement | null>(null)
+const interviewBtnRef = ref<HTMLButtonElement | null>(null)
+const todoBtnRef = ref<HTMLButtonElement | null>(null)
+const formLeft = ref('0')
+
+const hasActiveForm = computed(() => {
+  return (unlockTarget.value === 'life' && lifeExpanded.value)
+    || (unlockTarget.value === 'interview' && interviewExpanded.value)
+    || (unlockTarget.value === 'todo' && todoExpanded.value)
+})
+
+function syncFormLeft() {
+  nextTick(() => {
+    const btn = unlockTarget.value === 'life' ? lifeBtnRef.value
+      : unlockTarget.value === 'interview' ? interviewBtnRef.value
+      : unlockTarget.value === 'todo' ? todoBtnRef.value
+      : null
+    if (btn && sectionRef.value) {
+      const btnRect = btn.getBoundingClientRect()
+      const sectionRect = sectionRef.value.getBoundingClientRect()
+      formLeft.value = (btnRect.left - sectionRect.left) + 'px'
+    }
+  })
+}
+
+function toggle(target: UnlockTarget) {
+  if (unlockTarget.value === target) {
+    if (target === 'life') cancelLife()
+    else if (target === 'interview') cancelInterview()
+    else cancelTodo()
+  } else {
+    open(target)
+  }
+}
+
 function open(target: UnlockTarget) {
   unlockTarget.value = target
   if (target === 'life') {
     lifeExpanded.value = true
     lifeError.value = ''
     lifePassword.value = ''
+    syncFormLeft()
     nextTick(() => lifeInputRef.value?.focus())
   } else if (target === 'interview') {
     interviewExpanded.value = true
     interviewError.value = ''
     interviewPassword.value = ''
+    syncFormLeft()
     nextTick(() => interviewInputRef.value?.focus())
   } else {
     todoExpanded.value = true
     todoError.value = ''
     todoPassword.value = ''
+    syncFormLeft()
     nextTick(() => todoInputRef.value?.focus())
   }
 }
@@ -222,12 +274,17 @@ function submitTodo() {
 
 <style scoped>
 .unlock-section {
-  display: flex;
-  justify-content: flex-start;
-  gap: 0.6rem;
   margin-top: 2rem;
   padding-bottom: 1rem;
-  flex-wrap: wrap;
+}
+
+.unlock-buttons {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.unlock-form-row {
+  margin-top: 0.45rem;
 }
 
 .unlock-btn {
@@ -248,6 +305,12 @@ function submitTodo() {
 .unlock-btn:hover {
   color: rgb(var(--black));
   border-color: var(--accent);
+}
+
+.unlock-btn--active {
+  color: rgb(var(--black));
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .unlock-form {
