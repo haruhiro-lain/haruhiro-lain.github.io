@@ -72,10 +72,6 @@ const headTitle = title === SITE_TITLE ? SITE_TITLE : `${title} - ${SITE_TITLE}`
 				var mode = saved === 'off' ? 'off' : 'on';
 				document.documentElement.setAttribute('data-focus-mode', mode);
 
-				var INTERVIEW_KEY = 'interview-unlocked';
-				var interviewMode = localStorage.getItem(INTERVIEW_KEY) === 'true' ? 'on' : 'off';
-				document.documentElement.setAttribute('data-interview-mode', interviewMode);
-
 				var TODO_KEY = 'todo-unlocked';
 				var todoMode = localStorage.getItem(TODO_KEY) === 'true' ? 'on' : 'off';
 				document.documentElement.setAttribute('data-todo-mode', todoMode);

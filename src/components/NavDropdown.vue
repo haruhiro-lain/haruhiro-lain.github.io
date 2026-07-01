@@ -6,7 +6,7 @@
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
     @focusout="handleFocusOut"
-    @keydown.escape="dropdown.closeAll"
+    @keydown.escape="closeAllDropdowns"
   >
     <button
       class="nav-trigger"
@@ -32,8 +32,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * NavDropdown - 导航栏下拉菜单组件
+ *
+ * 支持鼠标悬停展开、点击切换、焦点离开关闭。
+ * 多个实例通过 dropdownState 模块级 ref 共享状态，确保同时只有一个展开。
+ */
 import { ref, computed, nextTick } from 'vue'
-import { useDropdownGroup } from '../composables/useDropdownGroup'
+import { isDropdownOpen, openDropdown, closeDropdown, closeAllDropdowns } from '../composables/dropdownState'
+
+// ---- 组件 Props ----
 
 interface DropdownItem {
   title: string
@@ -50,10 +58,10 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const dropdown = useDropdownGroup()
-const menuRoot = ref<HTMLElement | null>(null)
+// ---- 实例状态 ----
 
-const isOpenComputed = computed(() => dropdown.isOpen(props.menuId))
+const menuRoot = ref<HTMLElement | null>(null)
+const isOpenComputed = computed(() => isDropdownOpen(props.menuId))
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -64,36 +72,38 @@ function clearCloseTimer() {
   }
 }
 
+// ---- 事件处理 ----
+
 function handleTriggerClick() {
   clearCloseTimer()
   if (isOpenComputed.value) {
-    dropdown.close(props.menuId)
+    closeDropdown(props.menuId)
   } else {
-    dropdown.open(props.menuId)
+    openDropdown(props.menuId)
   }
 }
 
 function handleMouseEnter() {
   clearCloseTimer()
-  dropdown.open(props.menuId)
+  openDropdown(props.menuId)
 }
 
 function handleMouseLeave() {
   closeTimer = setTimeout(() => {
-    dropdown.close(props.menuId)
+    closeDropdown(props.menuId)
   }, 200)
 }
 
 function handleFocusOut() {
   nextTick(() => {
     if (!menuRoot.value?.contains(document.activeElement)) {
-      dropdown.close(props.menuId)
+      closeDropdown(props.menuId)
     }
   })
 }
 
 function handleItemClick() {
-  dropdown.closeAll()
+  closeAllDropdowns()
 }
 </script>
 

@@ -1,4 +1,13 @@
-﻿$projectRoot = $PSScriptRoot
+﻿param(
+    [switch]$All,
+    [switch]$NoPush,
+    [string[]]$RegistryMirrors = @(
+        "docker.1ms.run",
+        "docker.m.daocloud.io",
+        "dockerproxy.com"
+    )
+)
+$projectRoot = $PSScriptRoot
 
 # Force UTF-8 encoding for console output.
 & chcp 65001 | Out-Null
@@ -12,6 +21,57 @@ $containerName = "astro-blog"
 $hostPort = 18080
 $dockerHubUser = "haruhirolain"  # 改成你的 Docker Hub 用户名
 
+function Get-MirrorImageCandidates {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Image
+    )
+
+    $candidates = New-Object System.Collections.Generic.List[string]
+    foreach ($mirror in $RegistryMirrors) {
+        $normalizedMirror = $mirror.Trim().TrimEnd("/")
+        if (-not $normalizedMirror) {
+            continue
+        }
+
+        $candidates.Add("${normalizedMirror}/${Image}")
+
+        # Official Docker Hub images also live under library/* in the registry API.
+        if ($Image -notmatch "/") {
+            $candidates.Add("${normalizedMirror}/library/${Image}")
+        }
+    }
+
+    return $candidates
+}
+
+function Pull-ImageWithFallback {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Image
+    )
+
+    Write-Host "       Pulling ${Image}..." -ForegroundColor Gray
+    docker pull $Image
+    if ($LASTEXITCODE -eq 0) {
+        return $true
+    }
+
+    Write-Host "       Docker Hub pull failed, trying registry mirrors..." -ForegroundColor DarkYellow
+    foreach ($candidate in (Get-MirrorImageCandidates -Image $Image)) {
+        Write-Host "       Trying ${candidate}..." -ForegroundColor Gray
+        docker pull $candidate
+        if ($LASTEXITCODE -eq 0) {
+            docker tag $candidate $Image
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "       Tagged ${candidate} as ${Image}." -ForegroundColor Green
+                return $true
+            }
+        }
+    }
+
+    return $false
+}
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  Astro Blog - Docker Build & Run" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
@@ -37,24 +97,24 @@ if (-not $nodeExists -or -not $nginxExists) {
     $pullNodeOk = $true
     $pullNginxOk = $true
     if (-not $nodeExists) {
-        docker pull node:22-alpine 2>&1 | Out-Null
-        $pullNodeOk = ($LASTEXITCODE -eq 0)
+        $pullNodeOk = Pull-ImageWithFallback -Image "node:22-alpine"
     }
     if (-not $nginxExists) {
-        docker pull nginx:alpine 2>&1 | Out-Null
-        $pullNginxOk = ($LASTEXITCODE -eq 0)
+        $pullNginxOk = Pull-ImageWithFallback -Image "nginx:alpine"
     }
     if (-not $pullNodeOk -or -not $pullNginxOk) {
         Write-Host ""
         Write-Host "========================================" -ForegroundColor Red
         Write-Host "  Failed to pull base images." -ForegroundColor Red
-        Write-Host "  Docker Hub is unreachable via proxy." -ForegroundColor Red
+        Write-Host "  Docker Hub and configured mirrors are unreachable." -ForegroundColor Red
         Write-Host "========================================" -ForegroundColor Red
         Write-Host ""
         Write-Host "  Possible solutions:" -ForegroundColor Yellow
         Write-Host "  1. Check Clash Verge: make sure Allow LAN is ON" -ForegroundColor Gray
         Write-Host "  2. Check Clash Verge: switch to a node that can reach Docker Hub" -ForegroundColor Gray
-        Write-Host "  3. Or add a registry mirror to Docker Engine settings:" -ForegroundColor Gray
+        Write-Host "  3. Or pass another mirror to this script:" -ForegroundColor Gray
+        Write-Host '.\run.ps1 -all -RegistryMirrors docker.1ms.run,mirror.example.com' -ForegroundColor DarkYellow
+        Write-Host "  4. Or add a registry mirror to Docker Engine settings:" -ForegroundColor Gray
         Write-Host '     "registry-mirrors": ["https://docker.1ms.run"]' -ForegroundColor DarkYellow
         Write-Host ""
         exit 1
@@ -72,15 +132,21 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "       Image built successfully." -ForegroundColor Green
 
 # 4. Push to Docker Hub
-Write-Host "`n[4/7] Pushing to Docker Hub..." -ForegroundColor Yellow
-$remoteTag = "${dockerHubUser}/${imageName}:latest"
-docker tag "${imageName}:latest" $remoteTag
-docker push $remoteTag
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "       Push failed (not logged in or network issue)." -ForegroundColor DarkYellow
-    Write-Host "       Run: docker login && docker push ${remoteTag}" -ForegroundColor Gray
-} else {
-    Write-Host "       Pushed: ${remoteTag}" -ForegroundColor Green
+if ($NoPush) {
+    Write-Host "`n[4/7] Skipping Docker Hub push (-NoPush)." -ForegroundColor Gray
+}
+else {
+    Write-Host "`n[4/7] Pushing to Docker Hub..." -ForegroundColor Yellow
+    $remoteTag = "${dockerHubUser}/${imageName}:latest"
+    docker tag "${imageName}:latest" $remoteTag
+    docker push $remoteTag
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "       Push failed (not logged in or network issue)." -ForegroundColor DarkYellow
+        Write-Host "       Run: docker login && docker push ${remoteTag}" -ForegroundColor Gray
+    }
+    else {
+        Write-Host "       Pushed: ${remoteTag}" -ForegroundColor Green
+    }
 }
 
 # 5. Run container

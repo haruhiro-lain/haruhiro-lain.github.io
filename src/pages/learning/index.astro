@@ -4,12 +4,11 @@ import PageShell from '../../layouts/PageShell.astro';
 import { getGroupedSectionPosts } from '../../utils/content';
 import FallbackImage from '../../assets/sunny.jpg';
 
-const collectionOrder = ['algorithms', 'projects', 'others', 'interviews'] as const;
+const collectionOrder = ['algorithms', 'projects', 'others'] as const;
 const collectionLabels: Record<(typeof collectionOrder)[number], string> = {
 	algorithms: '题解',
 	projects: '项目',
 	others: '杂项',
-	interviews: '面经',
 };
 
 const groupedPosts = await getGroupedSectionPosts('learning', collectionOrder);
@@ -22,22 +21,10 @@ const groupedPosts = await getGroupedSectionPosts('learning', collectionOrder);
 		{groupedPosts.map(({ section, posts }) => {
 			const hasMore = posts.length > 6;
 			return (
-				<div class={`category-section${section === 'interviews' ? ' category-section--interviews' : ''}`}>
+				<div class="category-section">
 					<h2 class="category-title">
 						<a href={`/learning/${section}/`}>{collectionLabels[section]}</a>
 					</h2>
-				{section === 'interviews' ? (
-					<ul class="interview-compact-list">
-						{posts.slice(0, 6).map((post) => (
-							<li>
-								<a href={`/learning/${post.id}/`}>
-									<span class="interview-compact-list__title">{post.data.title}</span>
-									<FormattedDate date={post.data.pubDate} />
-								</a>
-							</li>
-						))}
-					</ul>
-				) : (
 					<ul class="post-grid">
 						{posts.slice(0, 6).map((post) => (
 							<li>
@@ -63,7 +50,6 @@ const groupedPosts = await getGroupedSectionPosts('learning', collectionOrder);
 							</li>
 						))}
 					</ul>
-				)}
 					{posts.length === 0 && <p class="empty-indicator">暂无内容</p>}
 					{hasMore && <a class="more-indicator" href={`/learning/${section}/`}>...</a>}
 				</div>
@@ -222,39 +208,4 @@ const groupedPosts = await getGroupedSectionPosts('learning', collectionOrder);
 		}
 	}
 
-	.interview-compact-list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.35rem;
-	}
-
-	.interview-compact-list a {
-		display: flex;
-		align-items: baseline;
-		justify-content: space-between;
-		gap: 1rem;
-		text-decoration: none;
-		color: rgb(var(--black));
-		padding: 0.35rem 0;
-		border-bottom: 1px solid var(--overlay-border);
-		transition: color 0.2s;
-	}
-
-	.interview-compact-list a:hover {
-		color: rgb(var(--accent));
-	}
-
-	.interview-compact-list__title {
-		font-weight: 500;
-		font-size: 1rem;
-	}
-
-	.interview-compact-list time {
-		font-size: 0.85rem;
-		color: rgb(var(--gray));
-		flex-shrink: 0;
-	}
 </style>
