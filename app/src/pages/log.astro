@@ -1,0 +1,112 @@
+---
+import PageShell from '../layouts/PageShell.astro';
+import { LOG_ENTRIES } from '../../../data/logEntries';
+
+const pageTitle = '更新日志';
+const pageDescription = '手动维护的重大变更记录。';
+
+const entries = [...LOG_ENTRIES].sort((a, b) => (a.date < b.date ? 1 : -1));
+
+type DayGroup = {
+	date: string;
+	label: string;
+	entries: typeof LOG_ENTRIES;
+};
+
+const groupedByYear = new Map<string, DayGroup[]>();
+
+for (const entry of entries) {
+	const [year = '', month = '', day = ''] = entry.date.split('-');
+	const dayLabel = `${Number(month)}/${Number(day)}`;
+
+	if (!groupedByYear.has(year)) {
+		groupedByYear.set(year, []);
+	}
+
+	const dayGroups = groupedByYear.get(year);
+	if (!dayGroups) {
+		continue;
+	}
+
+	const existingDayGroup = dayGroups.find((group) => group.date === entry.date);
+	if (existingDayGroup) {
+		existingDayGroup.entries.push(entry);
+		continue;
+	}
+
+	dayGroups.push({
+		date: entry.date,
+		label: dayLabel,
+		entries: [entry],
+	});
+}
+
+const yearlyLogs = Array.from(groupedByYear.entries());
+---
+
+<PageShell title={pageTitle} description={pageDescription} contentWidth="900px">
+	<section class="log-page">
+		<h1>日志</h1>
+		<p>
+			本页面用于维护变更记录，主要包含框架更换、功能上线、项目启动等节点。
+		</p>
+
+
+		{yearlyLogs.length > 0 ? (
+			yearlyLogs.map(([year, dayGroups]) => (
+				<section class="year-block">
+					<h2>{year}</h2>
+					{dayGroups.map((dayGroup) => (
+						<section class="day-block">
+							<h3>{dayGroup.label}</h3>
+							<ul class="log-list">
+								{dayGroup.entries.map((entry) => (
+									<li>
+										{entry.title}
+										{entry.details ? <span>（{entry.details}）</span> : null}
+									</li>
+								))}
+							</ul>
+						</section>
+					))}
+				</section>
+			))
+		) : (
+			<p class="empty-state">暂无可展示的变更记录。</p>
+		)}
+	</section>
+</PageShell>
+
+<style>
+	.year-block {
+		margin-top: 2.2rem;
+	}
+
+	.year-block h2 {
+		margin-bottom: 0.85rem;
+	}
+
+	.day-block {
+		margin: 1.15rem 0 1.5rem;
+	}
+
+	.day-block h3 {
+		font-size: 1.3rem;
+		margin-bottom: 0.65rem;
+	}
+
+	.log-list {
+		margin: 0;
+		line-height: 1.85;
+		padding-left: 1.2rem;
+	}
+
+	.log-list span,
+	.empty-state {
+		color: rgb(var(--gray));
+	}
+
+	.empty-state {
+		margin-top: 1.5rem;
+	}
+</style>

@@ -1,16 +1,21 @@
 # ============================================================
 # Stage 1: 构建阶段
+# 构建上下文为项目根目录（含 app/、data/、cache/、content/、docker/）
 # ============================================================
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
 # 安装依赖（利用 Docker 缓存层）
-COPY package.json package-lock.json* ./
+COPY app/package.json app/package-lock.json* ./
 RUN npm ci --ignore-scripts && npm install --ignore-scripts
 
-# 复制源码
-COPY . .
+# 复制源码与外部内容（data/cache/content 位于 app 外，需一并复制）
+COPY app/package.json app/package-lock.json* ./
+COPY app/ ./
+COPY data/ data/
+COPY cache/ cache/
+COPY content/ content/
 
 # 构建（跳过同步脚本，直接构建静态站点）
 ENV SITE_URL=https://your-domain.com
